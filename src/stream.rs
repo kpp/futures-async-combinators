@@ -1,5 +1,6 @@
 use futures::stream::Stream;
 use core::pin::Pin;
+use pin_utils::pin_mut;
 
 pub async fn next<St>(stream: &mut St) -> Option<St::Item>
     where St: Stream + Unpin,
@@ -11,10 +12,11 @@ pub async fn next<St>(stream: &mut St) -> Option<St::Item>
     await!(future_next)
 }
 
-pub async fn collect<St, C>(mut stream: St) -> C
-    where St: Stream + Unpin,
+pub async fn collect<St, C>(stream: St) -> C
+    where St: Stream,
           C: Default + Extend<St::Item>
 {
+    pin_mut!(stream);
     let mut collection = C::default();
     while let Some(item) = await!(next(&mut stream)) {
         collection.extend(Some(item));
