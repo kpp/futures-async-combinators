@@ -24,6 +24,22 @@ pub async fn collect<St, C>(stream: St) -> C
     collection
 }
 
+pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
+    where F: FnMut(St::Item) -> U,
+          St: Stream + Unpin,
+{
+    futures::stream::unfold((stream, f), move |(mut stream, mut f)| {
+        async {
+            if let Some(item) = await!(next(&mut stream)) {
+                let mapped = f(item);
+                Some((mapped, (stream, f)))
+            } else {
+                None
+            }
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::{stream, executor};
@@ -45,5 +61,13 @@ mod tests {
 
         let collection : Vec<i32> = executor::block_on(collect(stream));
         assert_eq!(collection, vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_map() {
+        let stream = stream::iter(1..=3);
+        let stream = map(stream, |x| x * 2);
+
+        assert_eq!(vec![2, 4, 6], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
