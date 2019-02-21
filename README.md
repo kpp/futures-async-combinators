@@ -4,7 +4,7 @@
 
 FOR LEARNING PURPOSES ONLY
 
-This is a greatly simplified implementation of [https://docs.rs/futures-preview/0.3.0-alpha.13/futures/](Future combinators)
+This is a greatly simplified implementation of [Future combinators](https://docs.rs/futures-preview/0.3.0-alpha.13/futures/)
 like `FutureExt::map`, `TryFutureExt::and_then`...
 
 # Requirements
