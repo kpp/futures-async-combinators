@@ -11,6 +11,17 @@ pub async fn next<St>(stream: &mut St) -> Option<St::Item>
     await!(future_next)
 }
 
+pub async fn collect<St, C>(mut stream: St) -> C
+    where St: Stream + Unpin,
+          C: Default + Extend<St::Item>
+{
+    let mut collection = C::default();
+    while let Some(item) = await!(next(&mut stream)) {
+        collection.extend(Some(item));
+    }
+    collection
+}
+
 #[cfg(test)]
 mod tests {
     use futures::{stream, executor};
@@ -26,4 +37,11 @@ mod tests {
         assert_eq!(executor::block_on(next(&mut stream)), None);
     }
 
+    #[test]
+    fn test_collect() {
+        let stream = stream::iter(1..=5);
+
+        let collection : Vec<i32> = executor::block_on(collect(stream));
+        assert_eq!(collection, vec![1, 2, 3, 4, 5]);
+    }
 }
