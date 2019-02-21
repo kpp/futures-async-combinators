@@ -1,0 +1,7 @@
+language: rust
+sudo: false
+rust:
+  - nightly-2019-02-19
+
+os:
+ - linux

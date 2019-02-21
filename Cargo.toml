@@ -1,0 +1,11 @@
+[package]
+name = "futures-async-combinators"
+version = "0.1.0"
+authors = ["Roman Proskuryakov <humbug@deeptown.org>"]
+edition = "2018"
+
+[dependencies]
+
+[dependencies.futures]
+version = "=0.3.0-alpha.13"
+package = "futures-preview"
