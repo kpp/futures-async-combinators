@@ -27,15 +27,9 @@ pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
     where F: FnMut(St::Item) -> U,
           St: Stream + Unpin,
 {
-    futures::stream::unfold((stream, f), move |(mut stream, mut f)| {
-        async {
-            if let Some(item) = await!(next(&mut stream)) {
-                let mapped = f(item);
-                Some((mapped, (stream, f)))
-            } else {
-                None
-            }
-        }
+    futures::stream::unfold((stream, f), async move |(mut stream, mut f)| {
+        let item = await!(next(&mut stream));
+        item.map(|item| (f(item), (stream, f)))
     })
 }
 
