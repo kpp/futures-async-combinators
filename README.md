@@ -48,7 +48,7 @@ Stream
 - [x] stream::next
 - [ ] stream::skip
 - [ ] stream::skip_while
-- [ ] stream::take
+- [x] stream::take
 - [ ] stream::take_while
 - [ ] stream::then
 - [ ] stream::unfold

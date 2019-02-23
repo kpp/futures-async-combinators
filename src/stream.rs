@@ -118,6 +118,23 @@ pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
     }
 }
 
+pub fn take<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
+    where St: Stream,
+{
+    let stream = Box::pin(stream);
+    futures::stream::unfold((stream, n), async move | (mut stream, n)| {
+        if n == 0 {
+            None
+        } else {
+            if let Some(item) = await!(next(&mut stream)) {
+                Some((item, (stream, n - 1)))
+            } else {
+                None
+            }
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -213,5 +230,13 @@ mod tests {
         }
 
         assert_eq!(x, 6);
+    }
+
+    #[test]
+    fn test_take() {
+        let stream = iter(1..=10);
+        let stream = take(stream, 3);
+
+        assert_eq!(vec![1, 2, 3], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
