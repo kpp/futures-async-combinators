@@ -1,4 +1,5 @@
 use futures::future::Future;
+use futures::stream::Stream;
 
 pub async fn ready<T>(value: T) -> T {
     value
@@ -99,6 +100,28 @@ pub async fn unwrap_or_else<Fut, T, E, F>(future: Fut, f: F) -> T
 {
     let future_result = await!(future);
     future_result.unwrap_or_else(f)
+}
+
+pub fn flatten_stream<Fut, St, T>(future: Fut) -> impl Stream<Item = T>
+    where Fut: Future<Output = St>,
+          St: Stream<Item = T>,
+{
+    use crate::stream::next;
+    futures::stream::unfold((Some(future), None), async move | (future, stream)| {
+        match (future, stream) {
+            (Some(future), None) => {
+                let stream = await!(future);
+                let mut stream = Box::pin(stream);
+                let item = await!(next(&mut stream));
+                item.map(|item| (item, (None, Some(stream))))
+            },
+            (None, Some(mut stream)) => {
+                let item = await!(next(&mut stream));
+                item.map(|item| (item, (None, Some(stream))))
+            },
+            _ => unreachable!()
+        }
+    })
 }
 
 #[cfg(test)]
@@ -202,6 +225,20 @@ mod tests {
             let future = ready(Err::<(), &str>("Boom!"));
             let new_future = unwrap_or_else(future, |_| ());
             assert_eq!(await!(new_future), ());
+        });
+    }
+
+    #[test]
+    fn test_flatten_stream() {
+        use futures::stream;
+        use crate::stream::collect;
+        executor::block_on(async {
+            let stream_items = vec![17, 18, 19];
+            let future_of_a_stream = ready(stream::iter(stream_items));
+
+            let stream = flatten_stream(future_of_a_stream);
+            let list: Vec<_> = await!(collect(stream));
+            assert_eq!(list, vec![17, 18, 19]);
         });
     }
 }

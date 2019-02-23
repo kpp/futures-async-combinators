@@ -18,7 +18,7 @@ Future
 - [x] future::and_then
 - [x] future::err_into
 - [x] future::flatten
-- [ ] future::flatten_stream
+- [x] future::flatten_stream
 - [x] future::inspect
 - [ ] future::into_stream
 - [x] future::map
