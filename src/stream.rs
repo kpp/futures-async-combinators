@@ -25,9 +25,10 @@ pub async fn collect<St, C>(stream: St) -> C
 
 pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
     where F: FnMut(St::Item) -> U,
-          St: Stream + Unpin,
+          St: Stream,
 {
-    futures::stream::unfold((stream, f), async move |(mut stream, mut f)| {
+    let stream = Box::pin(stream);
+    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
         let item = await!(next(&mut stream));
         item.map(|item| (f(item), (stream, f)))
     })
