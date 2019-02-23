@@ -85,6 +85,13 @@ pub async fn inspect<Fut, F>(future: Fut, f: F) -> Fut::Output
     future_result
 }
 
+pub async fn err_into<Fut, T, E, U>(future: Fut) -> Result<T,U>
+    where Fut: Future<Output = Result<T,E>>,
+          E: Into<U>,
+{
+    let future_result = await!(future);
+    future_result.map_err(Into::into)
+}
 
 #[cfg(test)]
 mod tests {
@@ -168,6 +175,16 @@ mod tests {
             let future = ready(1);
             let new_future = inspect(future, |&x| assert_eq!(x, 1));
             assert_eq!(await!(new_future), 1);
+        });
+    }
+
+    #[test]
+    fn test_err_into() {
+        executor::block_on(async {
+            let future_err_u8 = ready(Err::<(), u8>(1));
+            let future_err_i32 = err_into::<_, _, _, i32>(future_err_u8);
+
+            assert_eq!(await!(future_err_i32), Err::<(), i32>(1));
         });
     }
 }

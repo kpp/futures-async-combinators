@@ -16,7 +16,7 @@ Rust nightly-2019-02-19 for async_await, await_macro...
 Future
 
 - [x] future::and_then
-- [ ] future::err_into
+- [x] future::err_into
 - [x] future::flatten
 - [ ] future::flatten_stream
 - [x] future::inspect
