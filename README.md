@@ -26,6 +26,7 @@ Future
 - [x] future::map_ok
 - [x] future::or_else
 - [ ] future::poll_fn
+- [x] future::ready
 - [x] future::then
 - [ ] future::unwrap_or_else
 
@@ -35,13 +36,14 @@ Stream
 - [ ] stream::chunks
 - [x] stream::collect
 - [ ] stream::concat
-- [ ] stream::filter
-- [ ] stream::filter_map
+- [x] stream::filter
+- [x] stream::filter_map
 - [ ] stream::flatten
 - [ ] stream::fold
 - [ ] stream::for_each
 - [ ] stream::for_each_concurrent
 - [ ] stream::into_future
+- [ ] stream::iter
 - [x] stream::map
 - [x] stream::next
 - [ ] stream::skip
