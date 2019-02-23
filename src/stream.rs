@@ -54,6 +54,24 @@ pub fn filter<St, Fut, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
     })
 }
 
+pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
+    where St: Stream,
+          F: FnMut(St::Item) -> Fut,
+          Fut: Future<Output = Option<U>>
+{
+    let stream = Box::pin(stream);
+    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+        while let Some(item) = await!(next(&mut stream)) {
+            if let Some(item) = await!(f(item)) {
+                return Some((item, (stream, f)))
+            } else {
+                continue;
+            }
+        };
+        None
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::{executor, future, stream};
@@ -93,4 +111,14 @@ mod tests {
         assert_eq!(vec![2, 4, 6, 8, 10], executor::block_on(collect::<_, Vec<_>>(evens)));
     }
 
+    #[test]
+    fn test_filter_map() {
+        let stream = stream::iter(1..=10);
+        let evens = filter_map(stream, |x| {
+            let ret = if x % 2 == 0 { Some(x + 1) } else { None };
+            future::ready(ret)
+        });
+
+        assert_eq!(vec![3, 5, 7, 9, 11], executor::block_on(collect::<_, Vec<_>>(evens)));
+    }
 }
