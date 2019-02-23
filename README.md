@@ -11,6 +11,48 @@ like `FutureExt::map`, `TryFutureExt::and_then`...
 
 Rust nightly-2019-02-19 for async_await, await_macro...
 
+# State
+
+Future
+
+- [x] future::and_then
+- [ ] future::err_into
+- [x] future::flatten
+- [ ] future::flatten_stream
+- [x] future::inspect
+- [ ] future::into_stream
+- [x] future::map
+- [x] future::map_err
+- [x] future::map_ok
+- [x] future::or_else
+- [ ] future::poll_fn
+- [x] future::then
+- [ ] future::unwrap_or_else
+
+Stream
+
+- [ ] stream::chain
+- [ ] stream::chunks
+- [x] stream::collect
+- [ ] stream::concat
+- [ ] stream::filter
+- [ ] stream::filter_map
+- [ ] stream::flatten
+- [ ] stream::fold
+- [ ] stream::for_each
+- [ ] stream::for_each_concurrent
+- [ ] stream::into_future
+- [x] stream::map
+- [x] stream::next
+- [ ] stream::skip
+- [ ] stream::skip_while
+- [ ] stream::take
+- [ ] stream::take_while
+- [ ] stream::then
+- [ ] stream::unfold
+- [ ] stream::zip
+
+
 # Why
 
 To understand how combinators work by looking at clean source code. Compare:
