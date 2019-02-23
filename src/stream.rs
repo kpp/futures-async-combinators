@@ -74,8 +74,9 @@ pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
 
 #[cfg(test)]
 mod tests {
-    use futures::{executor, future, stream};
+    use futures::{executor, stream};
     use crate::stream::*;
+    use crate::future::ready;
 
     #[test]
     fn test_next() {
@@ -106,7 +107,7 @@ mod tests {
     #[test]
     fn test_filter() {
         let stream = stream::iter(1..=10);
-        let evens = filter(stream, |x| future::ready(x % 2 == 0));
+        let evens = filter(stream, |x| ready(x % 2 == 0));
 
         assert_eq!(vec![2, 4, 6, 8, 10], executor::block_on(collect::<_, Vec<_>>(evens)));
     }
@@ -116,7 +117,7 @@ mod tests {
         let stream = stream::iter(1..=10);
         let evens = filter_map(stream, |x| {
             let ret = if x % 2 == 0 { Some(x + 1) } else { None };
-            future::ready(ret)
+            ready(ret)
         });
 
         assert_eq!(vec![3, 5, 7, 9, 11], executor::block_on(collect::<_, Vec<_>>(evens)));

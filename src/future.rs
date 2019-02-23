@@ -88,7 +88,7 @@ pub async fn inspect<Fut, F>(future: Fut, f: F) -> Fut::Output
 
 #[cfg(test)]
 mod tests {
-    use futures::{future, executor};
+    use futures::executor;
     use crate::future::*;
 
     #[test]
@@ -102,7 +102,7 @@ mod tests {
     #[test]
     fn test_map() {
         executor::block_on(async {
-            let future = future::ready(1);
+            let future = ready(1);
             let new_future = map(future, |x| x + 3);
             assert_eq!(await!(new_future), 4);
         });
@@ -111,8 +111,8 @@ mod tests {
     #[test]
     fn test_then() {
         executor::block_on(async {
-            let future = future::ready(1);
-            let new_future = then(future, |x| future::ready(x + 3));
+            let future = ready(1);
+            let new_future = then(future, |x| ready(x + 3));
             assert_eq!(await!(new_future), 4);
         });
     }
@@ -120,8 +120,8 @@ mod tests {
     #[test]
     fn test_and_then() {
         executor::block_on(async {
-            let future = future::ready(Ok::<i32, i32>(1));
-            let new_future = and_then(future, |x| future::ready(Ok::<i32, i32>(x + 3)));
+            let future = ready(Ok::<i32, i32>(1));
+            let new_future = and_then(future, |x| ready(Ok::<i32, i32>(x + 3)));
             assert_eq!(await!(new_future), Ok(4));
         });
     }
@@ -129,8 +129,8 @@ mod tests {
     #[test]
     fn test_or_else() {
         executor::block_on(async {
-            let future = future::ready(Err::<i32, i32>(1));
-            let new_future = or_else(future, |x| future::ready(Err::<i32, i32>(x + 3)));
+            let future = ready(Err::<i32, i32>(1));
+            let new_future = or_else(future, |x| ready(Err::<i32, i32>(x + 3)));
             assert_eq!(await!(new_future), Err(4));
         });
     }
@@ -138,7 +138,7 @@ mod tests {
     #[test]
     fn test_map_ok() {
         executor::block_on(async {
-            let future = future::ready(Ok::<i32, i32>(1));
+            let future = ready(Ok::<i32, i32>(1));
             let new_future = map_ok(future, |x| x + 3);
             assert_eq!(await!(new_future), Ok(4));
         });
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_map_err() {
         executor::block_on(async {
-            let future = future::ready(Err::<i32, i32>(1));
+            let future = ready(Err::<i32, i32>(1));
             let new_future = map_err(future, |x| x + 3);
             assert_eq!(await!(new_future), Err(4));
         });
@@ -156,7 +156,7 @@ mod tests {
     #[test]
     fn test_flatten() {
         executor::block_on(async {
-            let nested_future = future::ready(future::ready(1));
+            let nested_future = ready(ready(1));
             let future = flatten(nested_future);
             assert_eq!(await!(future), 1);
         });
@@ -165,7 +165,7 @@ mod tests {
     #[test]
     fn test_inspect() {
         executor::block_on(async {
-            let future = future::ready(1);
+            let future = ready(1);
             let new_future = inspect(future, |&x| assert_eq!(x, 1));
             assert_eq!(await!(new_future), 1);
         });
