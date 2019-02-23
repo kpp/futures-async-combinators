@@ -243,11 +243,10 @@ mod tests {
 
     #[test]
     fn test_flatten_stream() {
-        use futures::stream;
-        use crate::stream::collect;
+        use crate::stream::{collect, iter};
         executor::block_on(async {
             let stream_items = vec![17, 18, 19];
-            let future_of_a_stream = ready(stream::iter(stream_items));
+            let future_of_a_stream = ready(iter(stream_items));
 
             let stream = flatten_stream(future_of_a_stream);
             let list: Vec<_> = await!(collect(stream));

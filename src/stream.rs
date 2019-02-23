@@ -94,13 +94,13 @@ pub fn iter<I>(i: I) -> impl Stream<Item = I::Item>
 
 #[cfg(test)]
 mod tests {
-    use futures::{executor, stream};
+    use futures::executor;
     use crate::stream::*;
     use crate::future::ready;
 
     #[test]
     fn test_next() {
-        let mut stream = stream::iter(1..=3);
+        let mut stream = iter(1..=3);
 
         assert_eq!(executor::block_on(next(&mut stream)), Some(1));
         assert_eq!(executor::block_on(next(&mut stream)), Some(2));
@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_collect() {
-        let stream = stream::iter(1..=5);
+        let stream = iter(1..=5);
 
         let collection : Vec<i32> = executor::block_on(collect(stream));
         assert_eq!(collection, vec![1, 2, 3, 4, 5]);
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn test_map() {
-        let stream = stream::iter(1..=3);
+        let stream = iter(1..=3);
         let stream = map(stream, |x| x * 2);
 
         assert_eq!(vec![2, 4, 6], executor::block_on(collect::<_, Vec<_>>(stream)));
@@ -126,7 +126,7 @@ mod tests {
 
     #[test]
     fn test_filter() {
-        let stream = stream::iter(1..=10);
+        let stream = iter(1..=10);
         let evens = filter(stream, |x| ready(x % 2 == 0));
 
         assert_eq!(vec![2, 4, 6, 8, 10], executor::block_on(collect::<_, Vec<_>>(evens)));
@@ -134,7 +134,7 @@ mod tests {
 
     #[test]
     fn test_filter_map() {
-        let stream = stream::iter(1..=10);
+        let stream = iter(1..=10);
         let evens = filter_map(stream, |x| {
             let ret = if x % 2 == 0 { Some(x + 1) } else { None };
             ready(ret)
@@ -145,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_into_future() {
-        let stream = stream::iter(1..=2);
+        let stream = iter(1..=2);
 
         let (item, stream) = executor::block_on(into_future(stream));
         assert_eq!(Some(1), item);
