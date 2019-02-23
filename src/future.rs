@@ -124,6 +124,19 @@ pub fn flatten_stream<Fut, St, T>(future: Fut) -> impl Stream<Item = T>
     })
 }
 
+pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
+    where Fut: Future,
+{
+    futures::stream::unfold(Some(future), async move |future| {
+        if let Some(future) = future {
+            let item = await!(future);
+            Some((item, (None)))
+        } else {
+            None
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -239,6 +252,17 @@ mod tests {
             let stream = flatten_stream(future_of_a_stream);
             let list: Vec<_> = await!(collect(stream));
             assert_eq!(list, vec![17, 18, 19]);
+        });
+    }
+
+    #[test]
+    fn test_into_stream() {
+        use crate::stream::collect;
+        executor::block_on(async {
+            let future = ready(17);
+            let stream = into_stream(future);
+            let collected: Vec<_> = await!(collect(stream));
+            assert_eq!(collected, vec![17]);
         });
     }
 }
