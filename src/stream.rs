@@ -1,6 +1,8 @@
 use futures::stream::Stream;
 use futures::future::Future;
 use core::pin::Pin;
+use core::iter::IntoIterator;
+
 use pin_utils::pin_mut;
 
 pub async fn next<St>(stream: &mut St) -> Option<St::Item>
@@ -80,6 +82,16 @@ pub async fn into_future<St>(stream: St) -> (Option<St::Item>, impl Stream<Item 
     (next_item, stream)
 }
 
+pub fn iter<I>(i: I) -> impl Stream<Item = I::Item>
+    where I: IntoIterator,
+{
+    use core::task::Poll;
+    let mut iter = i.into_iter();
+    futures::stream::poll_fn(move |_| -> Poll<Option<I::Item>> {
+        Poll::Ready(iter.next())
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::{executor, stream};
@@ -143,5 +155,13 @@ mod tests {
 
         let (item, _) = executor::block_on(into_future(stream));
         assert_eq!(None, item);
+    }
+
+    #[test]
+    fn test_iter() {
+        let stream = iter(1..=5);
+
+        let collection : Vec<i32> = executor::block_on(collect(stream));
+        assert_eq!(collection, vec![1, 2, 3, 4, 5]);
     }
 }

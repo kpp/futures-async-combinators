@@ -43,7 +43,7 @@ Stream
 - [ ] stream::for_each
 - [ ] stream::for_each_concurrent
 - [x] stream::into_future
-- [ ] stream::iter
+- [x] stream::iter
 - [x] stream::map
 - [x] stream::next
 - [ ] stream::skip
