@@ -1,5 +1,9 @@
 use futures::future::Future;
 
+pub async fn ready<T>(value: T) -> T {
+    value
+}
+
 pub async fn map<Fut, U, F>(future: Fut, f: F) -> U
     where F: FnOnce(Fut::Output) -> U,
           Fut: Future,
@@ -86,6 +90,14 @@ pub async fn inspect<Fut, F>(future: Fut, f: F) -> Fut::Output
 mod tests {
     use futures::{future, executor};
     use crate::future::*;
+
+    #[test]
+    fn test_ready() {
+        executor::block_on(async {
+            let future = ready(1);
+            assert_eq!(await!(future), 1);
+        });
+    }
 
     #[test]
     fn test_map() {
