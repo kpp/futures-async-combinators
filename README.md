@@ -28,7 +28,7 @@ Future
 - [ ] future::poll_fn
 - [x] future::ready
 - [x] future::then
-- [ ] future::unwrap_or_else
+- [x] future::unwrap_or_else
 
 Stream
 

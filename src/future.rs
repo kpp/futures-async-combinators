@@ -93,6 +93,14 @@ pub async fn err_into<Fut, T, E, U>(future: Fut) -> Result<T,U>
     future_result.map_err(Into::into)
 }
 
+pub async fn unwrap_or_else<Fut, T, E, F>(future: Fut, f: F) -> T
+    where Fut: Future<Output = Result<T,E>>,
+          F: FnOnce(E) -> T,
+{
+    let future_result = await!(future);
+    future_result.unwrap_or_else(f)
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -185,6 +193,15 @@ mod tests {
             let future_err_i32 = err_into::<_, _, _, i32>(future_err_u8);
 
             assert_eq!(await!(future_err_i32), Err::<(), i32>(1));
+        });
+    }
+
+    #[test]
+    fn test_unwrap_or_else() {
+        executor::block_on(async {
+            let future = ready(Err::<(), &str>("Boom!"));
+            let new_future = unwrap_or_else(future, |_| ());
+            assert_eq!(await!(new_future), ());
         });
     }
 }
