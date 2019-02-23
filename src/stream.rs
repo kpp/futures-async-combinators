@@ -1,4 +1,5 @@
 use futures::stream::Stream;
+use futures::future::Future;
 use core::pin::Pin;
 use pin_utils::pin_mut;
 
@@ -24,8 +25,8 @@ pub async fn collect<St, C>(stream: St) -> C
 }
 
 pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
-    where F: FnMut(St::Item) -> U,
-          St: Stream,
+    where St: Stream,
+          F: FnMut(St::Item) -> U,
 {
     let stream = Box::pin(stream);
     futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
@@ -34,9 +35,28 @@ pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
     })
 }
 
+pub fn filter<St, Fut, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
+    where St: Stream,
+          F: FnMut(&St::Item) -> Fut,
+          Fut: Future<Output = bool>
+{
+    let stream = Box::pin(stream);
+    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+        while let Some(item) = await!(next(&mut stream)) {
+            let matched = await!(f(&item));
+            if matched {
+                return Some((item, (stream, f)))
+            } else {
+                continue;
+            }
+        };
+        None
+    })
+}
+
 #[cfg(test)]
 mod tests {
-    use futures::{stream, executor};
+    use futures::{executor, future, stream};
     use crate::stream::*;
 
     #[test]
@@ -64,4 +84,13 @@ mod tests {
 
         assert_eq!(vec![2, 4, 6], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
+
+    #[test]
+    fn test_filter() {
+        let stream = stream::iter(1..=10);
+        let evens = filter(stream, |x| future::ready(x % 2 == 0));
+
+        assert_eq!(vec![2, 4, 6, 8, 10], executor::block_on(collect::<_, Vec<_>>(evens)));
+    }
+
 }
