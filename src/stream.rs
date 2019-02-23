@@ -135,6 +135,15 @@ pub fn take<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
     })
 }
 
+pub fn repeat<T>(item: T) -> impl Stream<Item = T>
+    where T: Clone,
+{
+    use core::task::Poll;
+    futures::stream::poll_fn(move |_| -> Poll<Option<T>> {
+        Poll::Ready(Some(item.clone()))
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -238,5 +247,13 @@ mod tests {
         let stream = take(stream, 3);
 
         assert_eq!(vec![1, 2, 3], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_repeat() {
+        let stream = repeat(9);
+        let stream = take(stream, 3);
+
+        assert_eq!(vec![9, 9, 9], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }

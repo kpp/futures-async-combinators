@@ -46,6 +46,7 @@ Stream
 - [x] stream::iter
 - [x] stream::map
 - [x] stream::next
+- [x] stream::repeat
 - [ ] stream::skip
 - [ ] stream::skip_while
 - [x] stream::take
