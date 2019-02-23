@@ -72,6 +72,14 @@ pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
     })
 }
 
+pub async fn into_future<St>(stream: St) -> (Option<St::Item>, impl Stream<Item = St::Item>)
+    where St: Stream + Unpin,
+{
+    let mut stream = stream;
+    let next_item = await!(next(&mut stream));
+    (next_item, stream)
+}
+
 #[cfg(test)]
 mod tests {
     use futures::{executor, stream};
@@ -121,5 +129,19 @@ mod tests {
         });
 
         assert_eq!(vec![3, 5, 7, 9, 11], executor::block_on(collect::<_, Vec<_>>(evens)));
+    }
+
+    #[test]
+    fn test_into_future() {
+        let stream = stream::iter(1..=2);
+
+        let (item, stream) = executor::block_on(into_future(stream));
+        assert_eq!(Some(1), item);
+
+        let (item, stream) = executor::block_on(into_future(stream));
+        assert_eq!(Some(2), item);
+
+        let (item, _) = executor::block_on(into_future(stream));
+        assert_eq!(None, item);
     }
 }

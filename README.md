@@ -42,7 +42,7 @@ Stream
 - [ ] stream::fold
 - [ ] stream::for_each
 - [ ] stream::for_each_concurrent
-- [ ] stream::into_future
+- [x] stream::into_future
 - [ ] stream::iter
 - [x] stream::map
 - [x] stream::next
