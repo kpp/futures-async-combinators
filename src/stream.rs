@@ -92,6 +92,20 @@ pub fn iter<I>(i: I) -> impl Stream<Item = I::Item>
     })
 }
 
+pub async fn concat<St>(stream: St) -> St::Item
+    where St: Stream,
+          St::Item: Extend<<St::Item as IntoIterator>::Item>,
+          St::Item: IntoIterator,
+          St::Item: Default,
+{
+    pin_mut!(stream);
+    let mut collection = <St::Item>::default();
+    while let Some(item) = await!(next(&mut stream)) {
+        collection.extend(item);
+    }
+    collection
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -162,6 +176,14 @@ mod tests {
         let stream = iter(1..=5);
 
         let collection : Vec<i32> = executor::block_on(collect(stream));
+        assert_eq!(collection, vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_concat() {
+        let stream = iter(vec![vec![1, 2], vec![3], vec![4, 5]]);
+
+        let collection : Vec<i32> = executor::block_on(concat(stream));
         assert_eq!(collection, vec![1, 2, 3, 4, 5]);
     }
 }

@@ -35,7 +35,7 @@ Stream
 - [ ] stream::chain
 - [ ] stream::chunks
 - [x] stream::collect
-- [ ] stream::concat
+- [x] stream::concat
 - [x] stream::filter
 - [x] stream::filter_map
 - [ ] stream::flatten
