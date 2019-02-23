@@ -106,6 +106,18 @@ pub async fn concat<St>(stream: St) -> St::Item
     collection
 }
 
+pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
+    where St: Stream,
+    F: FnMut(St::Item) -> Fut,
+    Fut: Future<Output = ()>,
+{
+    pin_mut!(stream);
+    let mut f = f;
+    while let Some(item) = await!(next(&mut stream)) {
+        f(item);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -185,5 +197,21 @@ mod tests {
 
         let collection : Vec<i32> = executor::block_on(concat(stream));
         assert_eq!(collection, vec![1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn test_for_each() {
+        let mut x = 0;
+
+        {
+            let stream = iter(1..=3);
+            let future = for_each(stream, |item| {
+                x += item;
+                ready(())
+            });
+            executor::block_on(future);
+        }
+
+        assert_eq!(x, 6);
     }
 }

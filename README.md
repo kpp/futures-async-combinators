@@ -40,7 +40,7 @@ Stream
 - [x] stream::filter_map
 - [ ] stream::flatten
 - [ ] stream::fold
-- [ ] stream::for_each
+- [x] stream::for_each
 - [ ] stream::for_each_concurrent
 - [x] stream::into_future
 - [x] stream::iter
