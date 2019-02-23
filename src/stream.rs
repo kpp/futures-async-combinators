@@ -30,10 +30,17 @@ pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
     where St: Stream,
           F: FnMut(St::Item) -> U,
 {
+    // stream::unfold accepts the initial state and a closure accepting the state
+    // the closure returns Future(None) as a terminate value
+    // to produce a value for the stream the closure returns Future( Some(value, state) )
+
+    // So State is a named struct to be destructured in the closure arg to improve readability
+    struct State<St, F> { stream: Pin<Box<St>>, f: F }
+
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
-        let item = await!(next(&mut stream));
-        item.map(|item| (f(item), (stream, f)))
+    futures::stream::unfold(State { stream, f }, async move |State { mut stream, mut f }| {
+        let item : Option<St::Item> = await!(next(&mut stream));
+        item.map(|item| (f(item), State { stream, f }))
     })
 }
 
