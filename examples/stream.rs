@@ -1,10 +1,10 @@
 #![feature(futures_api, async_await, await_macro)]
 
 use futures_async_combinators::stream::*;
-use futures::{stream, executor};
+use futures::executor;
 
 fn main() {
-    let stream = stream::iter(1..=3);
+    let stream = iter(1..=3);
     let stream = map(stream, |x| x + 1);
     let stream = map(stream, |x| x * 2);
 
