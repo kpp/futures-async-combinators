@@ -25,7 +25,7 @@ Future
 - [x] future::map_err
 - [x] future::map_ok
 - [x] future::or_else
-- [ ] future::poll_fn
+- [x] future::poll_fn
 - [x] future::ready
 - [x] future::then
 - [x] future::unwrap_or_else
