@@ -38,7 +38,7 @@ Stream
 - [x] stream::concat
 - [x] stream::filter
 - [x] stream::filter_map
-- [ ] stream::flatten
+- [x] stream::flatten
 - [ ] stream::fold
 - [x] stream::for_each
 - [ ] stream::for_each_concurrent

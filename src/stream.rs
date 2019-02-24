@@ -144,6 +144,33 @@ pub fn repeat<T>(item: T) -> impl Stream<Item = T>
     })
 }
 
+pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
+    where SubSt: Stream<Item = T>,
+          St: Stream<Item = SubSt>,
+{
+    let stream = Box::pin(stream);
+    futures::stream::unfold((Some(stream), None), async move | (mut state_stream, mut state_substream)| {
+        loop {
+            if let Some(mut substream) = state_substream.take() {
+                if let Some(item) = await!(next(&mut substream)) {
+                    return Some((item, (state_stream, Some(substream))))
+                } else {
+                    continue;
+                }
+            }
+            if let Some(mut stream) = state_stream.take() {
+                if let Some(substream) = await!(next(&mut stream)) {
+                    let substream = Box::pin(substream);
+                    state_stream = Some(stream);
+                    state_substream = Some(substream);
+                    continue;
+                }
+            }
+            return None;
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -255,5 +282,17 @@ mod tests {
         let stream = take(stream, 3);
 
         assert_eq!(vec![9, 9, 9], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_flatten() {
+        let stream0 = iter(0..0);
+        let stream1 = iter(1..4);
+        let stream2 = iter(4..7);
+        let stream3 = iter(7..10);
+        let stream = iter(vec![stream0, stream1, stream2, stream3]);
+        let stream = flatten(stream);
+
+        assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
