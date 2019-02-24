@@ -1,5 +1,6 @@
 use futures::stream::Stream;
 use futures::future::Future;
+
 use core::pin::Pin;
 use core::iter::IntoIterator;
 
@@ -8,7 +9,7 @@ use pin_utils::pin_mut;
 pub async fn next<St>(stream: &mut St) -> Option<St::Item>
     where St: Stream + Unpin,
 {
-    use futures::future::poll_fn;
+    use crate::future::poll_fn;
     let poll_next = |waker: &_| Pin::new(&mut *stream).poll_next(waker);
     let future_next = poll_fn(poll_next);
     await!(future_next)
