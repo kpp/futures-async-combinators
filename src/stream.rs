@@ -10,8 +10,7 @@ pub async fn next<St>(stream: &mut St) -> Option<St::Item>
     where St: Stream + Unpin,
 {
     use crate::future::poll_fn;
-    let poll_next = |waker: &_| Pin::new(&mut *stream).poll_next(waker);
-    let future_next = poll_fn(poll_next);
+    let future_next = poll_fn(|waker| Pin::new(&mut *stream).poll_next(waker));
     await!(future_next)
 }
 

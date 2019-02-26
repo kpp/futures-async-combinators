@@ -148,7 +148,7 @@ pub fn poll_fn<F, T>(f: F) -> impl Future<Output = T>
     from_generator(|| {
         let mut f = f;
         loop {
-            let poll_result = get_task_waker(|waker: &_| f(waker));
+            let poll_result = get_task_waker(|waker| f(waker));
             match poll_result {
                 Poll::Pending => yield,
                 Poll::Ready(value) => return value,
