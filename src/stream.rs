@@ -245,6 +245,25 @@ pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
     })
 }
 
+pub fn take_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
+    where St: Stream,
+          F: FnMut(&St::Item) -> Fut,
+          Fut: Future<Output = bool>,
+{
+    let stream = Box::pin(stream);
+    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+        if let Some(item) = await!(next(&mut stream)) {
+            if await!(f(&item)) {
+                Some((item, (stream, f)))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -402,5 +421,13 @@ mod tests {
         let stream = chain(stream1, stream2);
 
         assert_eq!(vec![1, 2, 3, 4], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_take_while() {
+        let stream = iter(1..=10);
+        let stream = take_while(stream, |x| ready(*x <= 5));
+
+        assert_eq!(vec![1, 2, 3, 4, 5], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
