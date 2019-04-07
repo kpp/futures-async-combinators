@@ -209,6 +209,22 @@ pub fn skip<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
     })
 }
 
+pub fn zip<St1, St2>(stream: St1, other: St2) -> impl Stream<Item = (St1::Item, St2::Item)>
+    where St1: Stream,
+          St2: Stream,
+{
+    let stream = Box::pin(stream);
+    let other = Box::pin(other);
+    futures::stream::unfold((stream, other), async move | (mut stream, mut other)| {
+        let left = await!(next(&mut stream));
+        let right = await!(next(&mut other));
+        match (left, right) {
+            (Some(left), Some(right)) => Some(((left, right), (stream, other))),
+            _ => None
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -348,5 +364,14 @@ mod tests {
         let stream = skip(stream, 5);
 
         assert_eq!(vec![6, 7, 8, 9, 10], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_zip() {
+        let stream1 = iter(1..=3);
+        let stream2 = iter(5..=10);
+        let stream = zip(stream1, stream2);
+
+        assert_eq!(vec![(1, 5), (2, 6), (3, 7)], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
