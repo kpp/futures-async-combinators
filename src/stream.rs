@@ -225,6 +225,26 @@ pub fn zip<St1, St2>(stream: St1, other: St2) -> impl Stream<Item = (St1::Item, 
     })
 }
 
+pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
+    where St: Stream,
+{
+    let stream = Box::pin(stream);
+    let other = Box::pin(other);
+    let start_with_first = true;
+    futures::stream::unfold((stream, other, start_with_first), async move | (mut stream, mut other, start_with_first)| {
+        if start_with_first {
+            if let Some(item) = await!(next(&mut stream)) {
+                return Some((item, (stream, other, start_with_first)))
+            }
+        }
+        if let Some(item) = await!(next(&mut other)) {
+            Some((item, (stream, other, /* start_with_first */ false)))
+        } else {
+            None
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -373,5 +393,14 @@ mod tests {
         let stream = zip(stream1, stream2);
 
         assert_eq!(vec![(1, 5), (2, 6), (3, 7)], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_chain() {
+        let stream1 = iter(1..=2);
+        let stream2 = iter(3..=4);
+        let stream = chain(stream1, stream2);
+
+        assert_eq!(vec![1, 2, 3, 4], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
