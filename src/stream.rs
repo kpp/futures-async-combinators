@@ -291,6 +291,20 @@ pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
     })
 }
 
+pub async fn fold<St, T, F, Fut>(stream: St, init: T, f: F) -> T
+    where St: Stream,
+          F: FnMut(T, St::Item) -> Fut,
+          Fut: Future<Output = T>,
+{
+    pin_mut!(stream);
+    let mut f = f;
+    let mut acc = init;
+    while let Some(item) = await!(next(&mut stream)) {
+        acc = await!(f(acc, item));
+    }
+    acc
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -464,5 +478,13 @@ mod tests {
         let stream = skip_while(stream, |x| ready(*x <= 5));
 
         assert_eq!(vec![6, 7, 8, 9, 10], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_fold() {
+        let stream = iter(0..6);
+        let sum = fold(stream, 0, |acc, x| ready(acc + x));
+
+        assert_eq!(15, executor::block_on(sum));
     }
 }
