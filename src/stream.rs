@@ -171,6 +171,23 @@ pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
     })
 }
 
+pub fn then<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
+    where St: Stream,
+          F: FnMut(St::Item) -> Fut,
+          Fut: Future<Output = St::Item>
+{
+    let stream = Box::pin(stream);
+    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+        let item = await!(next(&mut stream));
+        if let Some(item) = item {
+            let new_item = await!(f(item));
+            Some((new_item, (stream, f)))
+        } else {
+            None
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -294,5 +311,13 @@ mod tests {
         let stream = flatten(stream);
 
         assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_then() {
+        let stream = iter(1..=3);
+        let stream = then(stream, |x| ready(x+3));
+
+        assert_eq!(vec![4, 5, 6], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
