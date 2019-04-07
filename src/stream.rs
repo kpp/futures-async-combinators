@@ -188,6 +188,27 @@ pub fn then<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
     })
 }
 
+pub fn skip<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
+    where St: Stream,
+{
+    let stream = Box::pin(stream);
+    futures::stream::unfold((stream, n), async move | (mut stream, mut n)| {
+        while n != 0 {
+            if let Some(_) = await!(next(&mut stream)) {
+                n = n - 1;
+                continue
+            } else {
+                return None
+            }
+        }
+        if let Some(item) = await!(next(&mut stream)) {
+            Some((item, (stream, 0)))
+        } else {
+            None
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -319,5 +340,13 @@ mod tests {
         let stream = then(stream, |x| ready(x+3));
 
         assert_eq!(vec![4, 5, 6], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_skip() {
+        let stream = iter(1..=10);
+        let stream = skip(stream, 5);
+
+        assert_eq!(vec![6, 7, 8, 9, 10], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
