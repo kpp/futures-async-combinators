@@ -264,6 +264,33 @@ pub fn take_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
     })
 }
 
+pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
+    where St: Stream,
+          F: FnMut(&St::Item) -> Fut,
+          Fut: Future<Output = bool>,
+{
+    let stream = Box::pin(stream);
+    let should_skip = true;
+    futures::stream::unfold((stream, f, should_skip), async move | (mut stream, mut f, should_skip)| {
+        while should_skip {
+            if let Some(item) = await!(next(&mut stream)) {
+                if await!(f(&item)) {
+                    continue;
+                } else {
+                    return Some((item, (stream, f, /* should_skip */ false)))
+                }
+            } else {
+                return None
+            }
+        }
+        if let Some(item) = await!(next(&mut stream)) {
+            Some((item, (stream, f, /* should_skip */ false)))
+        } else {
+            None
+        }
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use futures::executor;
@@ -429,5 +456,13 @@ mod tests {
         let stream = take_while(stream, |x| ready(*x <= 5));
 
         assert_eq!(vec![1, 2, 3, 4, 5], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_skip_while() {
+        let stream = iter(1..=10);
+        let stream = skip_while(stream, |x| ready(*x <= 5));
+
+        assert_eq!(vec![6, 7, 8, 9, 10], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
