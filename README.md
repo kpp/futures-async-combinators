@@ -32,28 +32,26 @@ Future
 
 Stream
 
-- [ ] stream::chain
-- [ ] stream::chunks
+- [x] stream::chain
 - [x] stream::collect
 - [x] stream::concat
 - [x] stream::filter
 - [x] stream::filter_map
 - [x] stream::flatten
-- [ ] stream::fold
+- [x] stream::fold
 - [x] stream::for_each
-- [ ] stream::for_each_concurrent
 - [x] stream::into_future
 - [x] stream::iter
 - [x] stream::map
 - [x] stream::next
 - [x] stream::repeat
-- [ ] stream::skip
-- [ ] stream::skip_while
+- [x] stream::skip
+- [x] stream::skip_while
 - [x] stream::take
-- [ ] stream::take_while
-- [ ] stream::then
+- [x] stream::take_while
+- [x] stream::then
 - [ ] stream::unfold
-- [ ] stream::zip
+- [x] stream::zip
 
 
 # Why
