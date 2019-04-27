@@ -1,7 +1,7 @@
 use futures::future::Future;
 use futures::stream::Stream;
 
-use core::task::{Poll, Waker};
+use core::task::{Poll, Context};
 
 pub async fn ready<T>(value: T) -> T {
     value
@@ -140,15 +140,15 @@ pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
 }
 
 pub fn poll_fn<F, T>(f: F) -> impl Future<Output = T>
-    where F: FnMut(&Waker) -> Poll<T>,
+    where F: FnMut(&mut Context) -> Poll<T>,
 {
     use std::future::from_generator;
-    use std::future::get_task_waker;
+    use std::future::get_task_context;
 
     from_generator(|| {
         let mut f = f;
         loop {
-            let poll_result = get_task_waker(|waker| f(waker));
+            let poll_result = get_task_context(|context: &mut Context| f(context));
             match poll_result {
                 Poll::Pending => yield,
                 Poll::Ready(value) => return value,
@@ -288,7 +288,7 @@ mod tests {
     #[test]
     fn test_poll_fn() {
         executor::block_on(async {
-            let read_line = |_waker: &_| -> Poll<String> {
+            let read_line = |_context: &mut Context| -> Poll<String> {
                 Poll::Ready("Hello, World!".into())
             };
 
