@@ -23,3 +23,20 @@ pin-utils = "=0.1.0-alpha.4"
 [dependencies.futures]
 version = "=0.3.0-alpha.18"
 package = "futures-preview"
+
+[dev-dependencies]
+criterion = "0.2"
+
+[[bench]]
+name = "stream"
+harness = false
+
+[[bench]]
+name = "future"
+harness = false
+
+[profile.bench]
+opt-level = 3
+debug = false
+lto = true
+debug-assertions = false
