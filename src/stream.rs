@@ -11,7 +11,7 @@ pub async fn next<St>(stream: &mut St) -> Option<St::Item>
 {
     use crate::future::poll_fn;
     let future_next = poll_fn(|context| Pin::new(&mut *stream).poll_next(context));
-    await!(future_next)
+    future_next.await
 }
 
 pub async fn collect<St, C>(stream: St) -> C
@@ -20,7 +20,7 @@ pub async fn collect<St, C>(stream: St) -> C
 {
     pin_mut!(stream);
     let mut collection = C::default();
-    while let Some(item) = await!(next(&mut stream)) {
+    while let Some(item) = next(&mut stream).await {
         collection.extend(Some(item));
     }
     collection
@@ -32,7 +32,7 @@ pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
 {
     let stream = Box::pin(stream);
     futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
-        let item = await!(next(&mut stream));
+        let item = next(&mut stream).await;
         item.map(|item| (f(item), (stream, f)))
     })
 }
@@ -44,8 +44,8 @@ pub fn filter<St, Fut, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
 {
     let stream = Box::pin(stream);
     futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
-        while let Some(item) = await!(next(&mut stream)) {
-            let matched = await!(f(&item));
+        while let Some(item) = next(&mut stream).await {
+            let matched = f(&item).await;
             if matched {
                 return Some((item, (stream, f)))
             } else {
@@ -63,8 +63,8 @@ pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
 {
     let stream = Box::pin(stream);
     futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
-        while let Some(item) = await!(next(&mut stream)) {
-            if let Some(item) = await!(f(item)) {
+        while let Some(item) = next(&mut stream).await {
+            if let Some(item) = f(item).await {
                 return Some((item, (stream, f)))
             } else {
                 continue;
@@ -78,7 +78,7 @@ pub async fn into_future<St>(stream: St) -> (Option<St::Item>, impl Stream<Item 
     where St: Stream + Unpin,
 {
     let mut stream = stream;
-    let next_item = await!(next(&mut stream));
+    let next_item = next(&mut stream).await;
     (next_item, stream)
 }
 
@@ -100,7 +100,7 @@ pub async fn concat<St>(stream: St) -> St::Item
 {
     pin_mut!(stream);
     let mut collection = <St::Item>::default();
-    while let Some(item) = await!(next(&mut stream)) {
+    while let Some(item) = next(&mut stream).await {
         collection.extend(item);
     }
     collection
@@ -113,7 +113,7 @@ pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
 {
     pin_mut!(stream);
     let mut f = f;
-    while let Some(item) = await!(next(&mut stream)) {
+    while let Some(item) = next(&mut stream).await {
         f(item);
     }
 }
@@ -126,7 +126,7 @@ pub fn take<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
         if n == 0 {
             None
         } else {
-            if let Some(item) = await!(next(&mut stream)) {
+            if let Some(item) = next(&mut stream).await {
                 Some((item, (stream, n - 1)))
             } else {
                 None
@@ -152,14 +152,14 @@ pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
     futures::stream::unfold((Some(stream), None), async move | (mut state_stream, mut state_substream)| {
         loop {
             if let Some(mut substream) = state_substream.take() {
-                if let Some(item) = await!(next(&mut substream)) {
+                if let Some(item) = next(&mut substream).await {
                     return Some((item, (state_stream, Some(substream))))
                 } else {
                     continue;
                 }
             }
             if let Some(mut stream) = state_stream.take() {
-                if let Some(substream) = await!(next(&mut stream)) {
+                if let Some(substream) = next(&mut stream).await {
                     let substream = Box::pin(substream);
                     state_stream = Some(stream);
                     state_substream = Some(substream);
@@ -178,9 +178,9 @@ pub fn then<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 {
     let stream = Box::pin(stream);
     futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
-        let item = await!(next(&mut stream));
+        let item = next(&mut stream).await;
         if let Some(item) = item {
-            let new_item = await!(f(item));
+            let new_item = f(item).await;
             Some((new_item, (stream, f)))
         } else {
             None
@@ -194,14 +194,14 @@ pub fn skip<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
     let stream = Box::pin(stream);
     futures::stream::unfold((stream, n), async move | (mut stream, mut n)| {
         while n != 0 {
-            if let Some(_) = await!(next(&mut stream)) {
+            if let Some(_) = next(&mut stream).await {
                 n = n - 1;
                 continue
             } else {
                 return None
             }
         }
-        if let Some(item) = await!(next(&mut stream)) {
+        if let Some(item) = next(&mut stream).await {
             Some((item, (stream, 0)))
         } else {
             None
@@ -216,8 +216,8 @@ pub fn zip<St1, St2>(stream: St1, other: St2) -> impl Stream<Item = (St1::Item, 
     let stream = Box::pin(stream);
     let other = Box::pin(other);
     futures::stream::unfold((stream, other), async move | (mut stream, mut other)| {
-        let left = await!(next(&mut stream));
-        let right = await!(next(&mut other));
+        let left = next(&mut stream).await;
+        let right = next(&mut other).await;
         match (left, right) {
             (Some(left), Some(right)) => Some(((left, right), (stream, other))),
             _ => None
@@ -233,11 +233,11 @@ pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
     let start_with_first = true;
     futures::stream::unfold((stream, other, start_with_first), async move | (mut stream, mut other, start_with_first)| {
         if start_with_first {
-            if let Some(item) = await!(next(&mut stream)) {
+            if let Some(item) = next(&mut stream).await {
                 return Some((item, (stream, other, start_with_first)))
             }
         }
-        if let Some(item) = await!(next(&mut other)) {
+        if let Some(item) = next(&mut other).await {
             Some((item, (stream, other, /* start_with_first */ false)))
         } else {
             None
@@ -252,8 +252,8 @@ pub fn take_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 {
     let stream = Box::pin(stream);
     futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
-        if let Some(item) = await!(next(&mut stream)) {
-            if await!(f(&item)) {
+        if let Some(item) = next(&mut stream).await {
+            if f(&item).await {
                 Some((item, (stream, f)))
             } else {
                 None
@@ -273,8 +273,8 @@ pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
     let should_skip = true;
     futures::stream::unfold((stream, f, should_skip), async move | (mut stream, mut f, should_skip)| {
         while should_skip {
-            if let Some(item) = await!(next(&mut stream)) {
-                if await!(f(&item)) {
+            if let Some(item) = next(&mut stream).await {
+                if f(&item).await {
                     continue;
                 } else {
                     return Some((item, (stream, f, /* should_skip */ false)))
@@ -283,7 +283,7 @@ pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
                 return None
             }
         }
-        if let Some(item) = await!(next(&mut stream)) {
+        if let Some(item) = next(&mut stream).await {
             Some((item, (stream, f, /* should_skip */ false)))
         } else {
             None
@@ -299,8 +299,8 @@ pub async fn fold<St, T, F, Fut>(stream: St, init: T, f: F) -> T
     pin_mut!(stream);
     let mut f = f;
     let mut acc = init;
-    while let Some(item) = await!(next(&mut stream)) {
-        acc = await!(f(acc, item));
+    while let Some(item) = next(&mut stream).await {
+        acc = f(acc, item).await;
     }
     acc
 }
