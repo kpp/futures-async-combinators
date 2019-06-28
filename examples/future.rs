@@ -8,6 +8,6 @@ fn main() {
         let future = ready(Ok::<i32, i32>(1));
         let future = and_then(future, |x| ready(Ok::<i32, i32>(x + 3)));
         let future = inspect(future, |x| { dbg!(x); });
-        assert_eq!(await!(future), Ok(4));
+        assert_eq!(future.await, Ok(4));
     });
 }
