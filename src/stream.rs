@@ -31,7 +31,7 @@ pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
           F: FnMut(St::Item) -> U,
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move | (mut stream, mut f)| {
         let item = next(&mut stream).await;
         item.map(|item| (f(item), (stream, f)))
     })
@@ -43,7 +43,7 @@ pub fn filter<St, Fut, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
           Fut: Future<Output = bool>
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move | (mut stream, mut f)| {
         while let Some(item) = next(&mut stream).await {
             let matched = f(&item).await;
             if matched {
@@ -62,7 +62,7 @@ pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
           Fut: Future<Output = Option<U>>
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move | (mut stream, mut f)| {
         while let Some(item) = next(&mut stream).await {
             if let Some(item) = f(item).await {
                 return Some((item, (stream, f)))
@@ -122,7 +122,7 @@ pub fn take<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
     where St: Stream,
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, n), async move | (mut stream, n)| {
+    unfold((stream, n), async move | (mut stream, n)| {
         if n == 0 {
             None
         } else {
@@ -149,7 +149,7 @@ pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
           St: Stream<Item = SubSt>,
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((Some(stream), None), async move | (mut state_stream, mut state_substream)| {
+    unfold((Some(stream), None), async move | (mut state_stream, mut state_substream)| {
         loop {
             if let Some(mut substream) = state_substream.take() {
                 if let Some(item) = next(&mut substream).await {
@@ -177,7 +177,7 @@ pub fn then<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
           Fut: Future<Output = St::Item>
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move | (mut stream, mut f)| {
         let item = next(&mut stream).await;
         if let Some(item) = item {
             let new_item = f(item).await;
@@ -192,7 +192,7 @@ pub fn skip<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
     where St: Stream,
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, n), async move | (mut stream, mut n)| {
+    unfold((stream, n), async move | (mut stream, mut n)| {
         while n != 0 {
             if let Some(_) = next(&mut stream).await {
                 n = n - 1;
@@ -215,7 +215,7 @@ pub fn zip<St1, St2>(stream: St1, other: St2) -> impl Stream<Item = (St1::Item, 
 {
     let stream = Box::pin(stream);
     let other = Box::pin(other);
-    futures::stream::unfold((stream, other), async move | (mut stream, mut other)| {
+    unfold((stream, other), async move | (mut stream, mut other)| {
         let left = next(&mut stream).await;
         let right = next(&mut other).await;
         match (left, right) {
@@ -231,7 +231,7 @@ pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
     let stream = Box::pin(stream);
     let other = Box::pin(other);
     let start_with_first = true;
-    futures::stream::unfold((stream, other, start_with_first), async move | (mut stream, mut other, start_with_first)| {
+    unfold((stream, other, start_with_first), async move | (mut stream, mut other, start_with_first)| {
         if start_with_first {
             if let Some(item) = next(&mut stream).await {
                 return Some((item, (stream, other, start_with_first)))
@@ -251,7 +251,7 @@ pub fn take_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
           Fut: Future<Output = bool>,
 {
     let stream = Box::pin(stream);
-    futures::stream::unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move | (mut stream, mut f)| {
         if let Some(item) = next(&mut stream).await {
             if f(&item).await {
                 Some((item, (stream, f)))
@@ -271,7 +271,7 @@ pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 {
     let stream = Box::pin(stream);
     let should_skip = true;
-    futures::stream::unfold((stream, f, should_skip), async move | (mut stream, mut f, should_skip)| {
+    unfold((stream, f, should_skip), async move | (mut stream, mut f, should_skip)| {
         while should_skip {
             if let Some(item) = next(&mut stream).await {
                 if f(&item).await {
@@ -303,6 +303,36 @@ pub async fn fold<St, T, F, Fut>(stream: St, init: T, f: F) -> T
         acc = f(acc, item).await;
     }
     acc
+}
+
+pub fn unfold<T, F, Fut, It>(init: T, mut f: F) -> impl Stream<Item = It>
+    where F: FnMut(T) -> Fut,
+          Fut: Future<Output = Option<(It, T)>>,
+{
+    use core::task::Poll;
+    enum State<T, Fut> {
+        Paused(T),
+        Running(Pin<Box<Fut>>),
+    }
+    let mut state = Some(State::Paused(init));
+    futures::stream::poll_fn(move|waker| -> Poll<Option<It>> {
+        let mut future = match state.take() {
+            Some(State::Running(fut)) => fut,
+            Some(State::Paused(st)) => Box::pin(f(st)),
+            None => panic!("this stream must not be polled any more"),
+        };
+        match future.as_mut().poll(waker) {
+            Poll::Pending => {
+                state = Some(State::Running(future));
+                Poll::Pending
+            },
+            Poll::Ready(None) => Poll::Ready(None),
+            Poll::Ready(Some((item, new_state))) => {
+                state = Some(State::Paused(new_state));
+                Poll::Ready(Some(item))
+            },
+        }
+    })
 }
 
 #[cfg(test)]
@@ -486,5 +516,19 @@ mod tests {
         let sum = fold(stream, 0, |acc, x| ready(acc + x));
 
         assert_eq!(15, executor::block_on(sum));
+    }
+
+    #[test]
+    fn test_unfold() {
+        let stream = unfold(0, |state| {
+            if state <= 2 {
+                let next_state = state + 1;
+                let yielded = state  * 2;
+                ready(Some((yielded, next_state)))
+            } else {
+                ready(None)
+            }
+        });
+        assert_eq!(vec![0, 2, 4], executor::block_on(collect::<_, Vec<_>>(stream)));
     }
 }
