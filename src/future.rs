@@ -140,8 +140,7 @@ pub fn poll_fn<F, T>(f: F) -> impl Future<Output = T>
     from_generator(|| {
         let mut f = f;
         loop {
-            let poll_result = get_task_context(|context: &mut Context| f(context));
-            match poll_result {
+            match get_task_context(|context: &mut Context| f(context)) {
                 Poll::Pending => yield,
                 Poll::Ready(value) => return value,
             }
@@ -181,11 +180,20 @@ mod tests {
     }
 
     #[test]
-    fn test_and_then() {
+    fn test_and_then_ok() {
         executor::block_on(async {
             let future = ready(Ok::<i32, i32>(1));
             let new_future = and_then(future, |x| ready(Ok::<i32, i32>(x + 3)));
             assert_eq!(new_future.await, Ok(4));
+        });
+    }
+
+    #[test]
+    fn test_and_then_err() {
+        executor::block_on(async {
+            let future = ready(Err::<i32, i32>(1));
+            let new_future = and_then(future, |x| ready(Ok::<i32, i32>(x + 3)));
+            assert_eq!(new_future.await, Err(1));
         });
     }
 
