@@ -44,13 +44,14 @@ Stream
 - [x] stream::iter
 - [x] stream::map
 - [x] stream::next
+- [ ] stream::poll_fn
 - [x] stream::repeat
 - [x] stream::skip
 - [x] stream::skip_while
 - [x] stream::take
 - [x] stream::take_while
 - [x] stream::then
-- [ ] stream::unfold
+- [x] stream::unfold
 - [x] stream::zip
 
 
