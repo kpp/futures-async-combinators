@@ -140,8 +140,7 @@ pub fn poll_fn<F, T>(f: F) -> impl Future<Output = T>
     from_generator(|| {
         let mut f = f;
         loop {
-            let poll_result = get_task_context(|context: &mut Context| f(context));
-            match poll_result {
+            match get_task_context(|context: &mut Context| f(context)) {
                 Poll::Pending => yield,
                 Poll::Ready(value) => return value,
             }
