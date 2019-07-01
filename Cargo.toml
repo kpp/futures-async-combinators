@@ -19,6 +19,7 @@ maintenance = { status = "experimental" }
 
 [dependencies]
 pin-utils = "=0.1.0-alpha.4"
+futures-async-stream = "0.1.0-alpha.1"
 
 [dependencies.futures-core]
 version = "=0.3.0-alpha.19"
