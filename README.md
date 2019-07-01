@@ -1,6 +1,7 @@
 # futures-async-combinators
 
 [![Build Status](https://travis-ci.com/kpp/futures-async-combinators.svg?branch=master)](https://travis-ci.com/kpp/futures-async-combinators)
+[![Coverage Status](https://coveralls.io/repos/github/kpp/futures-async-combinators/badge.svg?branch=master)](https://coveralls.io/github/kpp/futures-async-combinators?branch=master)
 
 FOR LEARNING PURPOSES ONLY
 

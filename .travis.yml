@@ -4,4 +4,35 @@ rust:
   - nightly-2019-06-27
 
 os:
- - linux
+  - linux
+
+script:
+  - cargo test
+
+matrix:
+  include:
+    - os: linux
+      rust: nightly-2019-06-27
+      sudo: required
+      name: coverage
+      addons: # needed for `cargo install cargo-travis`
+        apt:
+          packages:
+            - libcurl4-openssl-dev
+            - libelf-dev
+            - libdw-dev
+            - binutils-dev
+            - cmake
+          sources:
+            - kalakris-cmake
+      cache:
+        directories:
+          - /home/travis/.cargo
+          - /home/travis/build/kpp/futures-async-combinators/target/kcov-master
+      before_cache:
+        - rm -rf /home/travis/.cargo/registry
+      install:
+        - cargo install cargo-update --debug || echo "cargo-update has been already installed"
+        - cargo install-update -i cargo-travis
+      script:
+        - cargo coveralls
