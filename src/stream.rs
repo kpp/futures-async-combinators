@@ -927,6 +927,14 @@ mod tests {
     }
 
     #[test]
+    fn test_take_more_than_size() {
+        let stream = iter(1..=3);
+        let stream = take(stream, 10);
+
+        assert_eq!(vec![1, 2, 3], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
     fn test_repeat() {
         let stream = repeat(9);
         let stream = take(stream, 3);
@@ -963,6 +971,14 @@ mod tests {
     }
 
     #[test]
+    fn test_skip_more_than_size() {
+        let stream = iter(1..=10);
+        let stream = skip(stream, 15);
+
+        assert!(executor::block_on(collect::<_, Vec<_>>(stream)).is_empty());
+    }
+
+    #[test]
     fn test_zip() {
         let stream1 = iter(1..=3);
         let stream2 = iter(5..=10);
@@ -989,11 +1005,27 @@ mod tests {
     }
 
     #[test]
+    fn test_take_while_more_than_size() {
+        let stream = iter(1..=3);
+        let stream = take_while(stream, |x| ready(*x <= 5));
+
+        assert_eq!(vec![1, 2, 3], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
     fn test_skip_while() {
         let stream = iter(1..=10);
         let stream = skip_while(stream, |x| ready(*x <= 5));
 
         assert_eq!(vec![6, 7, 8, 9, 10], executor::block_on(collect::<_, Vec<_>>(stream)));
+    }
+
+    #[test]
+    fn test_skip_while_more_than_size() {
+        let stream = iter(1..=3);
+        let stream = skip_while(stream, |x| ready(*x <= 5));
+
+        assert!(executor::block_on(collect::<_, Vec<_>>(stream)).is_empty());
     }
 
     #[test]
