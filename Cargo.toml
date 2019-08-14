@@ -14,5 +14,5 @@ edition = "2018"
 pin-utils = "=0.1.0-alpha.4"
 
 [dependencies.futures]
-version = "=0.3.0-alpha.17"
+version = "=0.3.0-alpha.18"
 package = "futures-preview"
