@@ -1,7 +1,7 @@
 language: rust
 sudo: false
 rust:
-  - nightly-2019-07-06
+  - nightly-2019-08-12
 
 os:
   - linux
@@ -12,7 +12,7 @@ script:
 matrix:
   include:
     - os: linux
-      rust: nightly-2019-07-06
+      rust: nightly-2019-08-12
       sudo: required
       name: coverage
       addons: # needed for `cargo install cargo-travis`

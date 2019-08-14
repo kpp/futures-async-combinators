@@ -1,4 +1,4 @@
-#![feature(async_await, await_macro)]
+#![feature(async_await)]
 
 use futures_async_combinators::future::*;
 use futures::executor;
