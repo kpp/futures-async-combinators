@@ -100,11 +100,11 @@ pub async fn then<FutA, FutB, F>(future: FutA, f: F) -> FutB::Output
 ///
 /// ```
 /// #![feature(async_await)]
-/// use futures::future::{self, TryFutureExt};
+/// use futures_async_combinators::future::{ready, and_then};
 ///
 /// # futures::executor::block_on(async {
-/// let future = future::ready(Ok::<i32, i32>(1));
-/// let future = future.and_then(|x| future::ready(Ok::<i32, i32>(x + 3)));
+/// let future = ready(Ok::<i32, i32>(1));
+/// let future = and_then(future, |x| ready(Ok::<i32, i32>(x + 3)));
 /// assert_eq!(future.await, Ok(4));
 /// # });
 /// ```

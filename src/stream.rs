@@ -473,7 +473,6 @@ pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
 /// ```
 /// #![feature(async_await)]
 /// # futures::executor::block_on(async {
-/// use futures::future;
 /// use futures_async_combinators::{future::ready, stream::{iter, then, collect}};
 ///
 /// let stream = iter(1..=3);
@@ -634,7 +633,6 @@ pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
 /// ```
 /// #![feature(async_await)]
 /// # futures::executor::block_on(async {
-/// use futures::future;
 /// use futures_async_combinators::{future::ready, stream::{iter, take_while, collect}};
 ///
 /// let stream = iter(1..=10);
