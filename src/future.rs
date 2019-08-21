@@ -1,14 +1,13 @@
 use futures::future::Future;
 use futures::stream::Stream;
 
-use core::task::{Poll, Context};
+use core::task::{Context, Poll};
 
 /// Create a future that is immediately ready with a value.
 ///
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future;
 ///
@@ -34,7 +33,6 @@ pub async fn ready<T>(value: T) -> T {
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future::{ready, map};
 ///
@@ -44,8 +42,9 @@ pub async fn ready<T>(value: T) -> T {
 /// # });
 /// ```
 pub async fn map<Fut, U, F>(future: Fut, f: F) -> U
-    where F: FnOnce(Fut::Output) -> U,
-          Fut: Future,
+where
+    F: FnOnce(Fut::Output) -> U,
+    Fut: Future,
 {
     f(future.await)
 }
@@ -66,7 +65,6 @@ pub async fn map<Fut, U, F>(future: Fut, f: F) -> U
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future::{ready, then};
 ///
@@ -76,9 +74,10 @@ pub async fn map<Fut, U, F>(future: Fut, f: F) -> U
 /// # });
 /// ```
 pub async fn then<FutA, FutB, F>(future: FutA, f: F) -> FutB::Output
-    where F: FnOnce(FutA::Output) -> FutB,
-          FutA: Future,
-          FutB: Future,
+where
+    F: FnOnce(FutA::Output) -> FutB,
+    FutA: Future,
+    FutB: Future,
 {
     let new_future = f(future.await);
     new_future.await
@@ -99,7 +98,6 @@ pub async fn then<FutA, FutB, F>(future: FutA, f: F) -> FutB::Output
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, and_then};
 ///
 /// # futures::executor::block_on(async {
@@ -113,7 +111,6 @@ pub async fn then<FutA, FutB, F>(future: FutA, f: F) -> FutB::Output
 /// effect:
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, and_then};
 ///
 /// # futures::executor::block_on(async {
@@ -123,15 +120,16 @@ pub async fn then<FutA, FutB, F>(future: FutA, f: F) -> FutB::Output
 /// # });
 /// ```
 pub async fn and_then<FutA, FutB, F, T, U, E>(future: FutA, f: F) -> Result<U, E>
-    where F: FnOnce(T) -> FutB,
-          FutA: Future<Output = Result<T,E>>,
-          FutB: Future<Output = Result<U,E>>,
+where
+    F: FnOnce(T) -> FutB,
+    FutA: Future<Output = Result<T, E>>,
+    FutB: Future<Output = Result<U, E>>,
 {
     match future.await {
         Ok(ok) => {
             let new_future = f(ok);
             new_future.await
-        },
+        }
         Err(err) => Err(err),
     }
 }
@@ -151,7 +149,6 @@ pub async fn and_then<FutA, FutB, F, T, U, E>(future: FutA, f: F) -> Result<U, E
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, or_else};
 ///
 /// # futures::executor::block_on(async {
@@ -165,7 +162,6 @@ pub async fn and_then<FutA, FutB, F, T, U, E>(future: FutA, f: F) -> Result<U, E
 /// no effect:
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, or_else};
 ///
 /// # futures::executor::block_on(async {
@@ -175,16 +171,17 @@ pub async fn and_then<FutA, FutB, F, T, U, E>(future: FutA, f: F) -> Result<U, E
 /// # });
 /// ```
 pub async fn or_else<FutA, FutB, F, T, E, U>(future: FutA, f: F) -> Result<T, U>
-    where F: FnOnce(E) -> FutB,
-          FutA: Future<Output = Result<T,E>>,
-          FutB: Future<Output = Result<T,U>>,
+where
+    F: FnOnce(E) -> FutB,
+    FutA: Future<Output = Result<T, E>>,
+    FutB: Future<Output = Result<T, U>>,
 {
     match future.await {
         Ok(ok) => Ok(ok),
         Err(err) => {
             let new_future = f(err);
             new_future.await
-        },
+        }
     }
 }
 
@@ -205,7 +202,6 @@ pub async fn or_else<FutA, FutB, F, T, E, U>(future: FutA, f: F) -> Result<T, U>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, map_ok};
 ///
 /// # futures::executor::block_on(async {
@@ -219,7 +215,6 @@ pub async fn or_else<FutA, FutB, F, T, E, U>(future: FutA, f: F) -> Result<T, U>
 /// effect:
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, map_ok};
 ///
 /// # futures::executor::block_on(async {
@@ -229,8 +224,9 @@ pub async fn or_else<FutA, FutB, F, T, E, U>(future: FutA, f: F) -> Result<T, U>
 /// # });
 /// ```
 pub async fn map_ok<Fut, F, T, U, E>(future: Fut, f: F) -> Result<U, E>
-    where F: FnOnce(T) -> U,
-          Fut: Future<Output = Result<T,E>>,
+where
+    F: FnOnce(T) -> U,
+    Fut: Future<Output = Result<T, E>>,
 {
     future.await.map(f)
 }
@@ -253,7 +249,6 @@ pub async fn map_ok<Fut, F, T, U, E>(future: Fut, f: F) -> Result<U, E>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, map_err};
 ///
 /// # futures::executor::block_on(async {
@@ -267,7 +262,6 @@ pub async fn map_ok<Fut, F, T, U, E>(future: Fut, f: F) -> Result<U, E>
 /// no effect:
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, map_err};
 ///
 /// # futures::executor::block_on(async {
@@ -277,8 +271,9 @@ pub async fn map_ok<Fut, F, T, U, E>(future: Fut, f: F) -> Result<U, E>
 /// # });
 /// ```
 pub async fn map_err<Fut, F, T, E, U>(future: Fut, f: F) -> Result<T, U>
-    where F: FnOnce(E) -> U,
-          Fut: Future<Output = Result<T,E>>,
+where
+    F: FnOnce(E) -> U,
+    Fut: Future<Output = Result<T, E>>,
 {
     future.await.map_err(f)
 }
@@ -300,7 +295,6 @@ pub async fn map_err<Fut, F, T, E, U>(future: Fut, f: F) -> Result<T, U>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future::{ready, flatten};
 ///
@@ -310,8 +304,9 @@ pub async fn map_err<Fut, F, T, E, U>(future: Fut, f: F) -> Result<T, U>
 /// # });
 /// ```
 pub async fn flatten<FutA, FutB>(future: FutA) -> FutB::Output
-    where FutA: Future<Output = FutB>,
-          FutB: Future,
+where
+    FutA: Future<Output = FutB>,
+    FutB: Future,
 {
     let nested_future = future.await;
     nested_future.await
@@ -327,7 +322,6 @@ pub async fn flatten<FutA, FutB>(future: FutA) -> FutB::Output
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future::{ready, inspect};
 ///
@@ -337,8 +331,9 @@ pub async fn flatten<FutA, FutB>(future: FutA) -> FutB::Output
 /// # });
 /// ```
 pub async fn inspect<Fut, F>(future: Fut, f: F) -> Fut::Output
-    where Fut: Future,
-          F: FnOnce(&Fut::Output),
+where
+    Fut: Future,
+    F: FnOnce(&Fut::Output),
 {
     let future_result = future.await;
     f(&future_result);
@@ -360,7 +355,6 @@ pub async fn inspect<Fut, F>(future: Fut, f: F) -> Fut::Output
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, err_into};
 ///
 /// # futures::executor::block_on(async {
@@ -368,9 +362,10 @@ pub async fn inspect<Fut, F>(future: Fut, f: F) -> Fut::Output
 /// let future_err_i32 = err_into::<i32, _, _, _>(future_err_u8);
 /// # });
 /// ```
-pub async fn err_into<U, Fut, T, E>(future: Fut) -> Result<T,U>
-    where Fut: Future<Output = Result<T,E>>,
-          E: Into<U>,
+pub async fn err_into<U, Fut, T, E>(future: Fut) -> Result<T, U>
+where
+    Fut: Future<Output = Result<T, E>>,
+    E: Into<U>,
 {
     future.await.map_err(Into::into)
 }
@@ -388,7 +383,6 @@ pub async fn err_into<U, Fut, T, E>(future: Fut) -> Result<T,U>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// use futures_async_combinators::future::{ready, unwrap_or_else};
 ///
 /// # futures::executor::block_on(async {
@@ -398,8 +392,9 @@ pub async fn err_into<U, Fut, T, E>(future: Fut) -> Result<T,U>
 /// # });
 /// ```
 pub async fn unwrap_or_else<Fut, T, E, F>(future: Fut, f: F) -> T
-    where Fut: Future<Output = Result<T,E>>,
-          F: FnOnce(E) -> T,
+where
+    Fut: Future<Output = Result<T, E>>,
+    F: FnOnce(E) -> T,
 {
     future.await.unwrap_or_else(f)
 }
@@ -417,7 +412,6 @@ pub async fn unwrap_or_else<Fut, T, E, F>(future: Fut, f: F) -> T
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future::{ready, flatten_stream};
 /// use futures_async_combinators::stream::{collect, iter};
@@ -431,23 +425,24 @@ pub async fn unwrap_or_else<Fut, T, E, F>(future: Fut, f: F) -> T
 /// # });
 /// ```
 pub fn flatten_stream<Fut, St, T>(future: Fut) -> impl Stream<Item = T>
-    where Fut: Future<Output = St>,
-          St: Stream<Item = T>,
+where
+    Fut: Future<Output = St>,
+    St: Stream<Item = T>,
 {
     use crate::stream::next;
-    futures::stream::unfold((Some(future), None), async move | (future, stream)| {
+    futures::stream::unfold((Some(future), None), async move |(future, stream)| {
         match (future, stream) {
             (Some(future), None) => {
                 let stream = future.await;
                 let mut stream = Box::pin(stream);
                 let item = next(&mut stream).await;
                 item.map(|item| (item, (None, Some(stream))))
-            },
+            }
             (None, Some(mut stream)) => {
                 let item = next(&mut stream).await;
                 item.map(|item| (item, (None, Some(stream))))
-            },
-            _ => unreachable!()
+            }
+            _ => unreachable!(),
         }
     })
 }
@@ -460,7 +455,6 @@ pub fn flatten_stream<Fut, St, T>(future: Fut) -> impl Stream<Item = T>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future::{ready, into_stream};
 /// use futures_async_combinators::stream::collect;
@@ -472,7 +466,8 @@ pub fn flatten_stream<Fut, St, T>(future: Fut) -> impl Stream<Item = T>
 /// # });
 /// ```
 pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
-    where Fut: Future,
+where
+    Fut: Future,
 {
     futures::stream::unfold(Some(future), async move |future| {
         if let Some(future) = future {
@@ -491,7 +486,6 @@ pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::future::poll_fn;
 /// use core::task::{Poll, Context};
@@ -505,7 +499,8 @@ pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
 /// # });
 /// ```
 pub fn poll_fn<F, T>(f: F) -> impl Future<Output = T>
-    where F: FnMut(&mut Context) -> Poll<T>,
+where
+    F: FnMut(&mut Context) -> Poll<T>,
 {
     use std::future::from_generator;
     use std::future::get_task_context;
@@ -523,8 +518,8 @@ pub fn poll_fn<F, T>(f: F) -> impl Future<Output = T>
 
 #[cfg(test)]
 mod tests {
-    use futures::executor;
     use crate::future::*;
+    use futures::executor;
 
     #[test]
     fn test_ready() {
@@ -661,13 +656,11 @@ mod tests {
     #[test]
     fn test_poll_fn() {
         executor::block_on(async {
-            let read_line = |_context: &mut Context| -> Poll<String> {
-                Poll::Ready("Hello, World!".into())
-            };
+            let read_line =
+                |_context: &mut Context| -> Poll<String> { Poll::Ready("Hello, World!".into()) };
 
             let read_future = poll_fn(read_line);
             assert_eq!(read_future.await, "Hello, World!".to_owned());
         });
     }
-
 }

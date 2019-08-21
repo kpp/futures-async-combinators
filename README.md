@@ -10,7 +10,7 @@ like `FutureExt::map`, `TryFutureExt::and_then`...
 
 # Requirements
 
-Rust nightly-2019-08-12 for async_await.
+Rust nightly-2019-08-21 for async_await.
 
 # State
 

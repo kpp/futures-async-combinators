@@ -1,7 +1,5 @@
-#![feature(async_await)]
-
-use futures_async_combinators::stream::*;
 use futures::executor;
+use futures_async_combinators::stream::*;
 
 fn main() {
     let stream = iter(1..=3);
@@ -9,7 +7,7 @@ fn main() {
     let stream = map(stream, |x| x * 2);
 
     let collect_future = collect(stream);
-    let collection : Vec<_> = executor::block_on(collect_future);
+    let collection: Vec<_> = executor::block_on(collect_future);
 
     assert_eq!(vec![4, 6, 8], collection);
 }
