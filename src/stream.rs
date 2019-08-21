@@ -1,8 +1,8 @@
-pub use futures::stream::Stream;
 use futures::future::Future;
+pub use futures::stream::Stream;
 
-use core::pin::Pin;
 use core::iter::IntoIterator;
+use core::pin::Pin;
 
 use pin_utils::pin_mut;
 
@@ -18,7 +18,6 @@ use pin_utils::pin_mut;
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, next};
 ///
@@ -31,7 +30,8 @@ use pin_utils::pin_mut;
 /// # });
 /// ```
 pub async fn next<St>(stream: &mut St) -> Option<St::Item>
-    where St: Stream + Unpin,
+where
+    St: Stream + Unpin,
 {
     use crate::future::poll_fn;
     let future_next = poll_fn(|context| Pin::new(&mut *stream).poll_next(context));
@@ -46,7 +46,6 @@ pub async fn next<St>(stream: &mut St) -> Option<St::Item>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, collect};
 ///
@@ -57,8 +56,9 @@ pub async fn next<St>(stream: &mut St) -> Option<St::Item>
 /// # });
 /// ```
 pub async fn collect<St, C>(stream: St) -> C
-    where St: Stream,
-          C: Default + Extend<St::Item>
+where
+    St: Stream,
+    C: Default + Extend<St::Item>,
 {
     pin_mut!(stream);
     let mut collection = C::default();
@@ -82,7 +82,6 @@ pub async fn collect<St, C>(stream: St) -> C
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, map, collect};
 ///
@@ -94,11 +93,12 @@ pub async fn collect<St, C>(stream: St) -> C
 /// # });
 /// ```
 pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
-    where St: Stream,
-          F: FnMut(St::Item) -> U,
+where
+    St: Stream,
+    F: FnMut(St::Item) -> U,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move |(mut stream, mut f)| {
         let item = next(&mut stream).await;
         item.map(|item| (f(item), (stream, f)))
     })
@@ -120,7 +120,6 @@ pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::{future::ready, stream::{iter, filter, collect}};
 ///
@@ -132,20 +131,21 @@ pub fn map<St, U, F>(stream: St, f: F) -> impl Stream<Item = U>
 /// # });
 /// ```
 pub fn filter<St, Fut, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
-    where St: Stream,
-          F: FnMut(&St::Item) -> Fut,
-          Fut: Future<Output = bool>
+where
+    St: Stream,
+    F: FnMut(&St::Item) -> Fut,
+    Fut: Future<Output = bool>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move |(mut stream, mut f)| {
         while let Some(item) = next(&mut stream).await {
             let matched = f(&item).await;
             if matched {
-                return Some((item, (stream, f)))
+                return Some((item, (stream, f)));
             } else {
                 continue;
             }
-        };
+        }
         None
     })
 }
@@ -164,7 +164,6 @@ pub fn filter<St, Fut, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
 ///
 /// # Examples
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::{future::ready, stream::{iter, filter_map, collect}};
 ///
@@ -179,19 +178,20 @@ pub fn filter<St, Fut, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
 /// # });
 /// ```
 pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
-    where St: Stream,
-          F: FnMut(St::Item) -> Fut,
-          Fut: Future<Output = Option<U>>
+where
+    St: Stream,
+    F: FnMut(St::Item) -> Fut,
+    Fut: Future<Output = Option<U>>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move |(mut stream, mut f)| {
         while let Some(item) = next(&mut stream).await {
             if let Some(item) = f(item).await {
-                return Some((item, (stream, f)))
+                return Some((item, (stream, f)));
             } else {
                 continue;
             }
-        };
+        }
         None
     })
 }
@@ -212,7 +212,6 @@ pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, into_future};
 ///
@@ -229,7 +228,8 @@ pub fn filter_map<St, Fut, F, U>(stream: St, f: F) -> impl Stream<Item = U>
 /// # });
 /// ```
 pub async fn into_future<St>(stream: St) -> (Option<St::Item>, impl Stream<Item = St::Item>)
-    where St: Stream + Unpin,
+where
+    St: Stream + Unpin,
 {
     let mut stream = stream;
     let next_item = next(&mut stream).await;
@@ -243,7 +243,6 @@ pub async fn into_future<St>(stream: St) -> (Option<St::Item>, impl Stream<Item 
 /// simply always calls `iter.next()` and returns that.
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, collect};
 ///
@@ -253,13 +252,12 @@ pub async fn into_future<St>(stream: St) -> (Option<St::Item>, impl Stream<Item 
 /// # });
 /// ```
 pub fn iter<I>(i: I) -> impl Stream<Item = I::Item>
-    where I: IntoIterator,
+where
+    I: IntoIterator,
 {
     use core::task::Poll;
     let mut iter = i.into_iter();
-    futures::stream::poll_fn(move |_| -> Poll<Option<I::Item>> {
-        Poll::Ready(iter.next())
-    })
+    futures::stream::poll_fn(move |_| -> Poll<Option<I::Item>> { Poll::Ready(iter.next()) })
 }
 
 /// Concatenate all items of a stream into a single extendable
@@ -275,7 +273,6 @@ pub fn iter<I>(i: I) -> impl Stream<Item = I::Item>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, concat};
 ///
@@ -286,10 +283,11 @@ pub fn iter<I>(i: I) -> impl Stream<Item = I::Item>
 /// # });
 /// ```
 pub async fn concat<St>(stream: St) -> St::Item
-    where St: Stream,
-          St::Item: Extend<<St::Item as IntoIterator>::Item>,
-          St::Item: IntoIterator,
-          St::Item: Default,
+where
+    St: Stream,
+    St::Item: Extend<<St::Item as IntoIterator>::Item>,
+    St::Item: IntoIterator,
+    St::Item: Default,
 {
     pin_mut!(stream);
     let mut collection = <St::Item>::default();
@@ -315,7 +313,6 @@ pub async fn concat<St>(stream: St) -> St::Item
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures::future;
 /// use futures_async_combinators::{future::ready, stream::{repeat, take, for_each}};
@@ -336,7 +333,8 @@ pub async fn concat<St>(stream: St) -> St::Item
 /// # });
 /// ```
 pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
-    where St: Stream,
+where
+    St: Stream,
     F: FnMut(St::Item) -> Fut,
     Fut: Future<Output = ()>,
 {
@@ -347,7 +345,6 @@ pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
     }
 }
 
-
 /// Creates a new stream of at most `n` items of the underlying stream.
 ///
 /// Once `n` items have been yielded from this stream then it will always
@@ -356,7 +353,6 @@ pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, take, collect};
 ///
@@ -368,10 +364,11 @@ pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
 /// # });
 /// ```
 pub fn take<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
-    where St: Stream,
+where
+    St: Stream,
 {
     let stream = Box::pin(stream);
-    unfold((stream, n), async move | (mut stream, n)| {
+    unfold((stream, n), async move |(mut stream, n)| {
         if n == 0 {
             None
         } else {
@@ -391,7 +388,6 @@ pub fn take<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
 /// available memory as it tries to just fill up all RAM.
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{repeat, take, collect};
 ///
@@ -403,12 +399,11 @@ pub fn take<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
 /// # });
 /// ```
 pub fn repeat<T>(item: T) -> impl Stream<Item = T>
-    where T: Clone,
+where
+    T: Clone,
 {
     use core::task::Poll;
-    futures::stream::poll_fn(move |_| -> Poll<Option<T>> {
-        Poll::Ready(Some(item.clone()))
-    })
+    futures::stream::poll_fn(move |_| -> Poll<Option<T>> { Poll::Ready(Some(item.clone())) })
 }
 
 /// Flattens a stream of streams into just one continuous stream.
@@ -416,7 +411,6 @@ pub fn repeat<T>(item: T) -> impl Stream<Item = T>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, flatten, collect};
 ///
@@ -432,15 +426,17 @@ pub fn repeat<T>(item: T) -> impl Stream<Item = T>
 /// # });
 /// ```
 pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
-    where SubSt: Stream<Item = T>,
-          St: Stream<Item = SubSt>,
+where
+    SubSt: Stream<Item = T>,
+    St: Stream<Item = SubSt>,
 {
     let stream = Box::pin(stream);
-    unfold((Some(stream), None), async move | (mut state_stream, mut state_substream)| {
-        loop {
+    unfold(
+        (Some(stream), None),
+        async move |(mut state_stream, mut state_substream)| loop {
             if let Some(mut substream) = state_substream.take() {
                 if let Some(item) = next(&mut substream).await {
-                    return Some((item, (state_stream, Some(substream))))
+                    return Some((item, (state_stream, Some(substream))));
                 } else {
                     continue;
                 }
@@ -454,8 +450,8 @@ pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
                 }
             }
             return None;
-        }
-    })
+        },
+    )
 }
 
 /// Computes from this stream's items new items of a different type using
@@ -471,7 +467,6 @@ pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::{future::ready, stream::{iter, then, collect}};
 ///
@@ -483,12 +478,13 @@ pub fn flatten<St, SubSt, T>(stream: St) -> impl Stream<Item = T>
 /// # });
 /// ```
 pub fn then<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
-    where St: Stream,
-          F: FnMut(St::Item) -> Fut,
-          Fut: Future<Output = St::Item>
+where
+    St: Stream,
+    F: FnMut(St::Item) -> Fut,
+    Fut: Future<Output = St::Item>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move |(mut stream, mut f)| {
         let item = next(&mut stream).await;
         if let Some(item) = item {
             let new_item = f(item).await;
@@ -507,7 +503,6 @@ pub fn then<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, skip, collect};
 ///
@@ -519,16 +514,17 @@ pub fn then<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 /// # });
 /// ```
 pub fn skip<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
-    where St: Stream,
+where
+    St: Stream,
 {
     let stream = Box::pin(stream);
-    unfold((stream, n), async move | (mut stream, mut n)| {
+    unfold((stream, n), async move |(mut stream, mut n)| {
         while n != 0 {
             if let Some(_) = next(&mut stream).await {
                 n = n - 1;
-                continue
+                continue;
             } else {
-                return None
+                return None;
             }
         }
         if let Some(item) = next(&mut stream).await {
@@ -548,7 +544,6 @@ pub fn skip<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, zip, collect};
 ///
@@ -562,17 +557,18 @@ pub fn skip<St>(stream: St, n: u64) -> impl Stream<Item = St::Item>
 /// ```
 ///
 pub fn zip<St1, St2>(stream: St1, other: St2) -> impl Stream<Item = (St1::Item, St2::Item)>
-    where St1: Stream,
-          St2: Stream,
+where
+    St1: Stream,
+    St2: Stream,
 {
     let stream = Box::pin(stream);
     let other = Box::pin(other);
-    unfold((stream, other), async move | (mut stream, mut other)| {
+    unfold((stream, other), async move |(mut stream, mut other)| {
         let left = next(&mut stream).await;
         let right = next(&mut other).await;
         match (left, right) {
             (Some(left), Some(right)) => Some(((left, right), (stream, other))),
-            _ => None
+            _ => None,
         }
     })
 }
@@ -583,7 +579,6 @@ pub fn zip<St1, St2>(stream: St1, other: St2) -> impl Stream<Item = (St1::Item, 
 /// first stream reaches the end, emits the elements from the second stream.
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::stream::{iter, chain, collect};
 ///
@@ -602,23 +597,27 @@ pub fn zip<St1, St2>(stream: St1, other: St2) -> impl Stream<Item = (St1::Item, 
 /// # });
 /// ```
 pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
-    where St: Stream,
+where
+    St: Stream,
 {
     let stream = Box::pin(stream);
     let other = Box::pin(other);
     let start_with_first = true;
-    unfold((stream, other, start_with_first), async move | (mut stream, mut other, start_with_first)| {
-        if start_with_first {
-            if let Some(item) = next(&mut stream).await {
-                return Some((item, (stream, other, start_with_first)))
+    unfold(
+        (stream, other, start_with_first),
+        async move |(mut stream, mut other, start_with_first)| {
+            if start_with_first {
+                if let Some(item) = next(&mut stream).await {
+                    return Some((item, (stream, other, start_with_first)));
+                }
             }
-        }
-        if let Some(item) = next(&mut other).await {
-            Some((item, (stream, other, /* start_with_first */ false)))
-        } else {
-            None
-        }
-    })
+            if let Some(item) = next(&mut other).await {
+                Some((item, (stream, other, /* start_with_first */ false)))
+            } else {
+                None
+            }
+        },
+    )
 }
 
 /// Take elements from this stream while the provided asynchronous predicate
@@ -631,7 +630,6 @@ pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::{future::ready, stream::{iter, take_while, collect}};
 ///
@@ -643,12 +641,13 @@ pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
 /// # });
 /// ```
 pub fn take_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
-    where St: Stream,
-          F: FnMut(&St::Item) -> Fut,
-          Fut: Future<Output = bool>,
+where
+    St: Stream,
+    F: FnMut(&St::Item) -> Fut,
+    Fut: Future<Output = bool>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move | (mut stream, mut f)| {
+    unfold((stream, f), async move |(mut stream, mut f)| {
         if let Some(item) = next(&mut stream).await {
             if f(&item).await {
                 Some((item, (stream, f)))
@@ -672,7 +671,6 @@ pub fn take_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::{future::ready, stream::{iter, skip_while, collect}};
 ///
@@ -684,30 +682,34 @@ pub fn take_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 /// # });
 /// ```
 pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
-    where St: Stream,
-          F: FnMut(&St::Item) -> Fut,
-          Fut: Future<Output = bool>,
+where
+    St: Stream,
+    F: FnMut(&St::Item) -> Fut,
+    Fut: Future<Output = bool>,
 {
     let stream = Box::pin(stream);
     let should_skip = true;
-    unfold((stream, f, should_skip), async move | (mut stream, mut f, should_skip)| {
-        while should_skip {
-            if let Some(item) = next(&mut stream).await {
-                if f(&item).await {
-                    continue;
+    unfold(
+        (stream, f, should_skip),
+        async move |(mut stream, mut f, should_skip)| {
+            while should_skip {
+                if let Some(item) = next(&mut stream).await {
+                    if f(&item).await {
+                        continue;
+                    } else {
+                        return Some((item, (stream, f, /* should_skip */ false)));
+                    }
                 } else {
-                    return Some((item, (stream, f, /* should_skip */ false)))
+                    return None;
                 }
-            } else {
-                return None
             }
-        }
-        if let Some(item) = next(&mut stream).await {
-            Some((item, (stream, f, /* should_skip */ false)))
-        } else {
-            None
-        }
-    })
+            if let Some(item) = next(&mut stream).await {
+                Some((item, (stream, f, /* should_skip */ false)))
+            } else {
+                None
+            }
+        },
+    )
 }
 
 /// Execute an accumulating asynchronous computation over a stream,
@@ -722,7 +724,6 @@ pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 /// # Examples
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::{future::ready, stream::{iter, fold}};
 ///
@@ -732,9 +733,10 @@ pub fn skip_while<St, F, Fut>(stream: St, f: F) -> impl Stream<Item = St::Item>
 /// # });
 /// ```
 pub async fn fold<St, T, F, Fut>(stream: St, init: T, f: F) -> T
-    where St: Stream,
-          F: FnMut(T, St::Item) -> Fut,
-          Fut: Future<Output = T>,
+where
+    St: Stream,
+    F: FnMut(T, St::Item) -> Fut,
+    Fut: Future<Output = T>,
 {
     pin_mut!(stream);
     let mut f = f;
@@ -771,7 +773,6 @@ pub async fn fold<St, T, F, Fut>(stream: St, init: T, f: F) -> T
 /// # Example
 ///
 /// ```
-/// #![feature(async_await)]
 /// # futures::executor::block_on(async {
 /// use futures_async_combinators::{future::ready, stream::{unfold, collect}};
 ///
@@ -790,8 +791,9 @@ pub async fn fold<St, T, F, Fut>(stream: St, init: T, f: F) -> T
 /// # });
 /// ```
 pub fn unfold<T, F, Fut, It>(init: T, mut f: F) -> impl Stream<Item = It>
-    where F: FnMut(T) -> Fut,
-          Fut: Future<Output = Option<(It, T)>>,
+where
+    F: FnMut(T) -> Fut,
+    Fut: Future<Output = Option<(It, T)>>,
 {
     use core::task::Poll;
     enum State<T, Fut> {
@@ -799,7 +801,7 @@ pub fn unfold<T, F, Fut, It>(init: T, mut f: F) -> impl Stream<Item = It>
         Running(Pin<Box<Fut>>),
     }
     let mut state = Some(State::Paused(init));
-    futures::stream::poll_fn(move|waker| -> Poll<Option<It>> {
+    futures::stream::poll_fn(move |waker| -> Poll<Option<It>> {
         let mut future = match state.take() {
             Some(State::Running(fut)) => fut,
             Some(State::Paused(st)) => Box::pin(f(st)),
@@ -809,21 +811,21 @@ pub fn unfold<T, F, Fut, It>(init: T, mut f: F) -> impl Stream<Item = It>
             Poll::Pending => {
                 state = Some(State::Running(future));
                 Poll::Pending
-            },
+            }
             Poll::Ready(None) => Poll::Ready(None),
             Poll::Ready(Some((item, new_state))) => {
                 state = Some(State::Paused(new_state));
                 Poll::Ready(Some(item))
-            },
+            }
         }
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use futures::executor;
-    use crate::stream::*;
     use crate::future::ready;
+    use crate::stream::*;
+    use futures::executor;
 
     #[test]
     fn test_next() {
@@ -839,7 +841,7 @@ mod tests {
     fn test_collect() {
         let stream = iter(1..=5);
 
-        let collection : Vec<i32> = executor::block_on(collect(stream));
+        let collection: Vec<i32> = executor::block_on(collect(stream));
         assert_eq!(collection, vec![1, 2, 3, 4, 5]);
     }
 
@@ -848,7 +850,10 @@ mod tests {
         let stream = iter(1..=3);
         let stream = map(stream, |x| x * 2);
 
-        assert_eq!(vec![2, 4, 6], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![2, 4, 6],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -856,7 +861,10 @@ mod tests {
         let stream = iter(1..=10);
         let evens = filter(stream, |x| ready(x % 2 == 0));
 
-        assert_eq!(vec![2, 4, 6, 8, 10], executor::block_on(collect::<_, Vec<_>>(evens)));
+        assert_eq!(
+            vec![2, 4, 6, 8, 10],
+            executor::block_on(collect::<_, Vec<_>>(evens))
+        );
     }
 
     #[test]
@@ -867,7 +875,10 @@ mod tests {
             ready(ret)
         });
 
-        assert_eq!(vec![3, 5, 7, 9, 11], executor::block_on(collect::<_, Vec<_>>(evens)));
+        assert_eq!(
+            vec![3, 5, 7, 9, 11],
+            executor::block_on(collect::<_, Vec<_>>(evens))
+        );
     }
 
     #[test]
@@ -888,7 +899,7 @@ mod tests {
     fn test_iter() {
         let stream = iter(1..=5);
 
-        let collection : Vec<i32> = executor::block_on(collect(stream));
+        let collection: Vec<i32> = executor::block_on(collect(stream));
         assert_eq!(collection, vec![1, 2, 3, 4, 5]);
     }
 
@@ -896,7 +907,7 @@ mod tests {
     fn test_concat() {
         let stream = iter(vec![vec![1, 2], vec![3], vec![4, 5]]);
 
-        let collection : Vec<i32> = executor::block_on(concat(stream));
+        let collection: Vec<i32> = executor::block_on(concat(stream));
         assert_eq!(collection, vec![1, 2, 3, 4, 5]);
     }
 
@@ -921,7 +932,10 @@ mod tests {
         let stream = iter(1..=10);
         let stream = take(stream, 3);
 
-        assert_eq!(vec![1, 2, 3], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![1, 2, 3],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -929,7 +943,10 @@ mod tests {
         let stream = iter(1..=3);
         let stream = take(stream, 10);
 
-        assert_eq!(vec![1, 2, 3], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![1, 2, 3],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -937,7 +954,10 @@ mod tests {
         let stream = repeat(9);
         let stream = take(stream, 3);
 
-        assert_eq!(vec![9, 9, 9], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![9, 9, 9],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -949,15 +969,21 @@ mod tests {
         let stream = iter(vec![stream0, stream1, stream2, stream3]);
         let stream = flatten(stream);
 
-        assert_eq!(vec![1, 2, 3, 4, 5, 6, 7, 8, 9], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![1, 2, 3, 4, 5, 6, 7, 8, 9],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
     fn test_then() {
         let stream = iter(1..=3);
-        let stream = then(stream, |x| ready(x+3));
+        let stream = then(stream, |x| ready(x + 3));
 
-        assert_eq!(vec![4, 5, 6], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![4, 5, 6],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -965,7 +991,10 @@ mod tests {
         let stream = iter(1..=10);
         let stream = skip(stream, 5);
 
-        assert_eq!(vec![6, 7, 8, 9, 10], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![6, 7, 8, 9, 10],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -982,7 +1011,10 @@ mod tests {
         let stream2 = iter(5..=10);
         let stream = zip(stream1, stream2);
 
-        assert_eq!(vec![(1, 5), (2, 6), (3, 7)], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![(1, 5), (2, 6), (3, 7)],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -991,7 +1023,10 @@ mod tests {
         let stream2 = iter(3..=4);
         let stream = chain(stream1, stream2);
 
-        assert_eq!(vec![1, 2, 3, 4], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![1, 2, 3, 4],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -999,7 +1034,10 @@ mod tests {
         let stream = iter(1..=10);
         let stream = take_while(stream, |x| ready(*x <= 5));
 
-        assert_eq!(vec![1, 2, 3, 4, 5], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![1, 2, 3, 4, 5],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -1007,7 +1045,10 @@ mod tests {
         let stream = iter(1..=3);
         let stream = take_while(stream, |x| ready(*x <= 5));
 
-        assert_eq!(vec![1, 2, 3], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![1, 2, 3],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -1015,7 +1056,10 @@ mod tests {
         let stream = iter(1..=10);
         let stream = skip_while(stream, |x| ready(*x <= 5));
 
-        assert_eq!(vec![6, 7, 8, 9, 10], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![6, 7, 8, 9, 10],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 
     #[test]
@@ -1039,12 +1083,15 @@ mod tests {
         let stream = unfold(0, |state| {
             if state <= 2 {
                 let next_state = state + 1;
-                let yielded = state  * 2;
+                let yielded = state * 2;
                 ready(Some((yielded, next_state)))
             } else {
                 ready(None)
             }
         });
-        assert_eq!(vec![0, 2, 4], executor::block_on(collect::<_, Vec<_>>(stream)));
+        assert_eq!(
+            vec![0, 2, 4],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
     }
 }
