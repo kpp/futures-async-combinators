@@ -1,7 +1,15 @@
 # futures-async-combinators
 
-[![Build Status](https://travis-ci.com/kpp/futures-async-combinators.svg?branch=master)](https://travis-ci.com/kpp/futures-async-combinators)
-[![Coverage Status](https://coveralls.io/repos/github/kpp/futures-async-combinators/badge.svg?branch=master)](https://coveralls.io/github/kpp/futures-async-combinators?branch=master)
+[![Build Status][travis-badge]][travis-url]
+[![Coverage Status][cov-badge]][cov-url]
+[![Docs][doc-badge]][doc-url]
+
+[travis-badge]: https://travis-ci.com/kpp/futures-async-combinators.svg?branch=master
+[travis-url]: https://travis-ci.com/kpp/futures-async-combinators
+[cov-badge]: https://coveralls.io/repos/github/kpp/futures-async-combinators/badge.svg?branch=master
+[cov-url]: https://coveralls.io/github/kpp/futures-async-combinators?branch=master
+[doc-badge]: https://docs.rs/futures-async-combinators/badge.svg
+[doc-url]: https://docs.rs/futures-async-combinators
 
 FOR LEARNING PURPOSES ONLY
 
