@@ -1,6 +1,6 @@
 [package]
 name = "futures-async-combinators"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Roman Proskuryakov <humbug@deeptown.org>"]
 description = "toy futures combinators"
 license = "MIT"
