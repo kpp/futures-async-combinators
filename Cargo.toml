@@ -1,6 +1,6 @@
 [package]
 name = "futures-async-combinators"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Roman Proskuryakov <humbug@deeptown.org>"]
 description = "toy futures combinators"
 license = "MIT"
@@ -9,6 +9,13 @@ homepage = "https://github.com/kpp/futures-async-combinators"
 repository = "https://github.com/kpp/futures-async-combinators"
 keywords = ["async", "await", "futures"]
 edition = "2018"
+
+[badges]
+travis-ci = { repository = "kpp/futures-async-combinators" }
+coveralls = { repository = "kpp/futures-async-combinators" }
+# Available options are `actively-developed`, `passively-maintained`,
+# `as-is`, `none`, `experimental`, `looking-for-maintainer`, `deprecated`.
+maintenance = { status = "experimental" }
 
 [dependencies]
 pin-utils = "=0.1.0-alpha.4"
