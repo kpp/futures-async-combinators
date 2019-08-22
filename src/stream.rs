@@ -30,13 +30,12 @@ use pin_utils::pin_mut;
 /// assert_eq!(next(&mut stream).await, None);
 /// # });
 /// ```
-pub async fn next<St>(stream: &mut St) -> Option<St::Item>
+pub fn next<'a, St>(mut stream: &'a mut St) -> impl Future<Output = Option<St::Item>> + 'a
 where
     St: Stream + Unpin,
 {
     use crate::future::poll_fn;
-    let future_next = poll_fn(|context| Pin::new(&mut *stream).poll_next(context));
-    future_next.await
+    poll_fn(move |context| Pin::new(&mut stream).poll_next(context))
 }
 
 /// Collect all of the values of this stream into a vector, returning a

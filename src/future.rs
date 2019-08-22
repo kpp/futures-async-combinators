@@ -1,6 +1,7 @@
 use futures::future::Future;
 use futures::stream::Stream;
 
+use core::pin::Pin;
 use core::task::{Context, Poll};
 
 /// Create a future that is immediately ready with a value.
@@ -502,18 +503,21 @@ pub fn poll_fn<F, T>(f: F) -> impl Future<Output = T>
 where
     F: FnMut(&mut Context) -> Poll<T>,
 {
-    use std::future::from_generator;
-    use std::future::get_task_context;
+    struct PollFn<F> {
+        f: F,
+    }
+    impl<F> Unpin for PollFn<F> {}
+    impl<T, F> Future for PollFn<F>
+    where
+        F: FnMut(&mut Context<'_>) -> Poll<T>,
+    {
+        type Output = T;
 
-    from_generator(|| {
-        let mut f = f;
-        loop {
-            match get_task_context(|context: &mut Context| f(context)) {
-                Poll::Pending => yield,
-                Poll::Ready(value) => return value,
-            }
+        fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<T> {
+            (&mut self.f)(cx)
         }
-    })
+    }
+    PollFn { f }
 }
 
 #[cfg(test)]
