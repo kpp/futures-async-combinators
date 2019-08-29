@@ -25,7 +25,7 @@ version = "=0.3.0-alpha.18"
 package = "futures-preview"
 
 [dev-dependencies]
-criterion = "0.2"
+criterion = "0.3"
 
 [[bench]]
 name = "stream"
