@@ -13,7 +13,7 @@
 
 FOR LEARNING PURPOSES ONLY
 
-This is a greatly simplified implementation of [Future combinators](https://docs.rs/futures-preview/0.3.0-alpha.13/futures/)
+This is a greatly simplified implementation of [Future combinators](https://docs.rs/futures-preview/0.3.0-alpha.18/futures/)
 like `FutureExt::map`, `TryFutureExt::and_then`...
 
 # Requirements
@@ -71,9 +71,8 @@ To understand how combinators work by looking at clean source code. Compare:
 ```rust
 pub async fn then<...>(future, f) -> ...
 {
-    let future_result = await!(future);
-    let new_future = f(future_result);
-    await!(new_future)
+    let new_future = f(future.await);
+    new_future.await
 }
 ```
 
