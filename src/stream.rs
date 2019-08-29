@@ -3,6 +3,7 @@ pub use futures::stream::Stream;
 
 use core::iter::IntoIterator;
 use core::pin::Pin;
+use core::task::{Context, Poll};
 
 use pin_utils::pin_mut;
 
@@ -255,9 +256,8 @@ pub fn iter<I>(i: I) -> impl Stream<Item = I::Item>
 where
     I: IntoIterator,
 {
-    use core::task::Poll;
     let mut iter = i.into_iter();
-    futures::stream::poll_fn(move |_| -> Poll<Option<I::Item>> { Poll::Ready(iter.next()) })
+    crate::stream::poll_fn(move |_| -> Poll<Option<I::Item>> { Poll::Ready(iter.next()) })
 }
 
 /// Concatenate all items of a stream into a single extendable
@@ -402,8 +402,7 @@ pub fn repeat<T>(item: T) -> impl Stream<Item = T>
 where
     T: Clone,
 {
-    use core::task::Poll;
-    futures::stream::poll_fn(move |_| -> Poll<Option<T>> { Poll::Ready(Some(item.clone())) })
+    crate::stream::poll_fn(move |_| -> Poll<Option<T>> { Poll::Ready(Some(item.clone())) })
 }
 
 /// Flattens a stream of streams into just one continuous stream.
@@ -795,19 +794,18 @@ where
     F: FnMut(T) -> Fut,
     Fut: Future<Output = Option<(It, T)>>,
 {
-    use core::task::Poll;
     enum State<T, Fut> {
         Paused(T),
         Running(Pin<Box<Fut>>),
     }
     let mut state = Some(State::Paused(init));
-    futures::stream::poll_fn(move |waker| -> Poll<Option<It>> {
+    crate::stream::poll_fn(move |context| -> Poll<Option<It>> {
         let mut future = match state.take() {
             Some(State::Running(fut)) => fut,
             Some(State::Paused(st)) => Box::pin(f(st)),
             None => panic!("this stream must not be polled any more"),
         };
-        match future.as_mut().poll(waker) {
+        match future.as_mut().poll(context) {
             Poll::Pending => {
                 state = Some(State::Running(future));
                 Poll::Pending
@@ -819,6 +817,47 @@ where
             }
         }
     })
+}
+
+/// Creates a new stream wrapping a function returning `Poll<Option<T>>`.
+///
+/// Polling the returned stream calls the wrapped function.
+///
+/// # Examples
+///
+/// ```
+/// use futures_async_combinators::stream::poll_fn;
+/// use core::task::Poll;
+///
+/// let mut counter = 1usize;
+///
+/// let read_stream = poll_fn(move |_| -> Poll<Option<String>> {
+///     if counter == 0 { return Poll::Ready(None); }
+///     counter -= 1;
+///     Poll::Ready(Some("Hello, World!".to_owned()))
+/// });
+/// ```
+pub fn poll_fn<T, F>(f: F) -> impl Stream<Item = T>
+where
+    F: FnMut(&mut Context<'_>) -> Poll<Option<T>>,
+{
+    pub struct PollFn<F> {
+        f: F,
+    }
+
+    impl<F> Unpin for PollFn<F> {}
+
+    impl<T, F> Stream for PollFn<F>
+    where
+        F: FnMut(&mut Context<'_>) -> Poll<Option<T>>,
+    {
+        type Item = T;
+
+        fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<T>> {
+            (&mut self.f)(cx)
+        }
+    }
+    PollFn { f }
 }
 
 #[cfg(test)]
