@@ -113,11 +113,38 @@ fn bench_stream_map(c: &mut Criterion) {
     });
 }
 
+fn bench_stream_fold(c: &mut Criterion) {
+    executor::block_on(async {
+        let mut group = c.benchmark_group("stream::fold");
+
+        group.bench_function("futures", |b| {
+            b.iter(async move || {
+                use futures::stream::{iter, StreamExt};
+                let stream = iter(1..=1000);
+                let acc = stream.fold(0, async move |acc, x| acc + x);
+                black_box(acc).await
+            })
+        });
+        group.bench_function("async_combinators", |b| {
+            b.iter(async move || {
+                use futures::stream::iter;
+                use futures_async_combinators::stream::fold;
+                let stream = iter(1..=1000);
+                let acc = fold(stream, 0, async move |acc, x| acc + x);
+                black_box(acc).await
+            })
+        });
+
+        group.finish();
+    });
+}
+
 criterion_group!(
     benches,
     bench_stream_iter,
     bench_stream_next,
     bench_stream_collect,
     bench_stream_map,
+    bench_stream_fold,
 );
 criterion_main!(benches);
