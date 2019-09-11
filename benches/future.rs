@@ -63,7 +63,7 @@ fn bench_map(c: &mut Criterion) {
             b.iter(async move || {
                 use futures_async_combinators::future::*;
                 let fut = ready(40);
-                let fut = map(fut, |x| x + 2);
+                let fut = fut.map(|x| x + 2);
                 black_box(fut).await
             })
         });
