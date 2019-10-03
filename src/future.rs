@@ -1,5 +1,5 @@
-use futures::future::Future;
-use futures::stream::Stream;
+use futures_core::future::Future;
+use futures_core::stream::Stream;
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
