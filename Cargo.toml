@@ -20,8 +20,12 @@ maintenance = { status = "experimental" }
 [dependencies]
 pin-utils = "=0.1.0-alpha.4"
 
-[dependencies.futures]
-version = "=0.3.0-alpha.18"
+[dependencies.futures-core]
+version = "=0.3.0-alpha.19"
+package = "futures-core-preview"
+
+[dev-dependencies.futures]
+version = "=0.3.0-alpha.19"
 package = "futures-preview"
 
 [dev-dependencies]

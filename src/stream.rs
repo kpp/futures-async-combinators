@@ -1,5 +1,5 @@
-use futures::future::Future;
-pub use futures::stream::Stream;
+use core::future::Future;
+pub use futures_core::stream::Stream;
 
 use core::iter::IntoIterator;
 use core::pin::Pin;
