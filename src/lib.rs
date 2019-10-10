@@ -1,4 +1,4 @@
-#![feature(async_closure, gen_future, generators)]
+#![feature(gen_future, generators, proc_macro_hygiene)]
 
 pub mod future;
 pub mod stream;

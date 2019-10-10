@@ -1,5 +1,6 @@
 use futures_core::future::Future;
 use futures_core::stream::Stream;
+use futures_async_stream::async_stream_block;
 
 use core::pin::Pin;
 use core::task::{Context, Poll};
@@ -430,22 +431,13 @@ where
     Fut: Future<Output = St>,
     St: Stream<Item = T>,
 {
-    use crate::stream::next;
-    crate::stream::unfold((Some(future), None), async move |(future, stream)| {
-        match (future, stream) {
-            (Some(future), None) => {
-                let stream = future.await;
-                let mut stream = Box::pin(stream);
-                let item = next(&mut stream).await;
-                item.map(|item| (item, (None, Some(stream))))
-            }
-            (None, Some(mut stream)) => {
-                let item = next(&mut stream).await;
-                item.map(|item| (item, (None, Some(stream))))
-            }
-            _ => unreachable!(),
+    async_stream_block! {
+        let stream = future.await;
+        #[for_await]
+        for item in stream {
+            yield item
         }
-    })
+    }
 }
 
 /// Convert this future into a single element stream.
@@ -470,14 +462,10 @@ pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
 where
     Fut: Future,
 {
-    crate::stream::unfold(Some(future), async move |future| {
-        if let Some(future) = future {
-            let item = future.await;
-            Some((item, (None)))
-        } else {
-            None
-        }
-    })
+    async_stream_block! {
+        let item = future.await;
+        yield item
+    }
 }
 
 /// Creates a new future wrapping around a function returning [`Poll`](core::task::Poll).
