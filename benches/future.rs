@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 use criterion::*;
 use futures::executor;
 
@@ -8,12 +6,12 @@ fn bench_ready(c: &mut Criterion) {
         let mut group = c.benchmark_group("future::ready");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 black_box(futures::future::ready(42)).await
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 black_box(futures_async_combinators::future::ready(42)).await
             })
         });
@@ -33,12 +31,12 @@ fn bench_poll_fn(c: &mut Criterion) {
         let mut group = c.benchmark_group("future::poll_fn");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 black_box(futures::future::poll_fn(ret_42)).await
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 black_box(futures_async_combinators::future::poll_fn(ret_42)).await
             })
         });
@@ -52,7 +50,7 @@ fn bench_map(c: &mut Criterion) {
         let mut group = c.benchmark_group("future::map");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::future::*;
                 let fut = ready(40);
                 let fut = fut.map(|x| x + 2);
@@ -60,7 +58,7 @@ fn bench_map(c: &mut Criterion) {
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures_async_combinators::future::*;
                 let fut = ready(40);
                 let fut = map(fut, |x| x + 2);

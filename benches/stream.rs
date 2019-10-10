@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 use criterion::*;
 use futures::executor;
 
@@ -8,7 +6,7 @@ fn bench_stream_iter(c: &mut Criterion) {
         let mut group = c.benchmark_group("stream::iter");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::{iter, StreamExt};
                 let mut stream = iter(1..=1000);
                 while let Some(item) = stream.next().await {
@@ -17,7 +15,7 @@ fn bench_stream_iter(c: &mut Criterion) {
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::StreamExt;
                 use futures_async_combinators::stream::iter;
                 let mut stream = iter(1..=1000);
@@ -36,7 +34,7 @@ fn bench_stream_next(c: &mut Criterion) {
         let mut group = c.benchmark_group("stream::next");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::{iter, StreamExt};
                 let mut stream = iter(1..=1000);
                 while let Some(item) = stream.next().await {
@@ -45,7 +43,7 @@ fn bench_stream_next(c: &mut Criterion) {
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::iter;
                 use futures_async_combinators::stream::next;
                 let mut stream = iter(1..=1000);
@@ -64,7 +62,7 @@ fn bench_stream_collect(c: &mut Criterion) {
         let mut group = c.benchmark_group("stream::collect");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::{iter, StreamExt};
                 let stream = iter(1..=1000);
                 let vec: Vec<_> = stream.collect().await;
@@ -72,7 +70,7 @@ fn bench_stream_collect(c: &mut Criterion) {
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::iter;
                 use futures_async_combinators::stream::collect;
                 let stream = iter(1..=1000);
@@ -90,7 +88,7 @@ fn bench_stream_map(c: &mut Criterion) {
         let mut group = c.benchmark_group("stream::map");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::{iter, StreamExt};
                 let stream = iter(1..=1000);
                 let stream = stream.map(|x| x + 42);
@@ -99,7 +97,7 @@ fn bench_stream_map(c: &mut Criterion) {
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::{iter, StreamExt};
                 use futures_async_combinators::stream::map;
                 let stream = iter(1..=1000);
@@ -118,19 +116,21 @@ fn bench_stream_fold(c: &mut Criterion) {
         let mut group = c.benchmark_group("stream::fold");
 
         group.bench_function("futures", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::{iter, StreamExt};
+                use futures_async_combinators::future::ready;
                 let stream = iter(1..=1000);
-                let acc = stream.fold(0, async move |acc, x| acc + x);
+                let acc = stream.fold(0, |acc, x| ready(acc + x));
                 black_box(acc).await
             })
         });
         group.bench_function("async_combinators", |b| {
-            b.iter(async move || {
+            b.iter(move || async {
                 use futures::stream::iter;
+                use futures_async_combinators::future::ready;
                 use futures_async_combinators::stream::fold;
                 let stream = iter(1..=1000);
-                let acc = fold(stream, 0, async move |acc, x| acc + x);
+                let acc = fold(stream, 0, |acc, x| ready(acc + x));
                 black_box(acc).await
             })
         });

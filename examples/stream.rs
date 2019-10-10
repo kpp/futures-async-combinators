@@ -1,3 +1,5 @@
+#![type_length_limit="2111998"]
+
 use futures::executor;
 use futures_async_combinators::stream::*;
 

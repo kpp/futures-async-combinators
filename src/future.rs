@@ -431,7 +431,7 @@ where
     St: Stream<Item = T>,
 {
     use crate::stream::next;
-    crate::stream::unfold((Some(future), None), async move |(future, stream)| {
+    crate::stream::unfold((Some(future), None), |(future, stream)| async move {
         match (future, stream) {
             (Some(future), None) => {
                 let stream = future.await;
@@ -470,7 +470,7 @@ pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
 where
     Fut: Future,
 {
-    crate::stream::unfold(Some(future), async move |future| {
+    crate::stream::unfold(Some(future), |future| async move {
         if let Some(future) = future {
             let item = future.await;
             Some((item, (None)))

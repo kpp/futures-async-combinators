@@ -121,7 +121,7 @@ where
     F: FnMut(St::Item) -> U,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move |(mut stream, mut f)| {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
         let item = next(&mut stream).await;
         item.map(|item| (f(item), (stream, f)))
     })
@@ -160,7 +160,7 @@ where
     Fut: Future<Output = bool>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move |(mut stream, mut f)| {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
         while let Some(item) = next(&mut stream).await {
             let matched = f(&item).await;
             if matched {
@@ -207,7 +207,7 @@ where
     Fut: Future<Output = Option<U>>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move |(mut stream, mut f)| {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
         while let Some(item) = next(&mut stream).await {
             if let Some(item) = f(item).await {
                 return Some((item, (stream, f)));
@@ -390,7 +390,7 @@ where
     St: Stream,
 {
     let stream = Box::pin(stream);
-    unfold((stream, n), async move |(mut stream, n)| {
+    crate::stream::unfold((stream, n), |(mut stream, n)| async move {
         if n == 0 {
             None
         } else {
@@ -452,26 +452,28 @@ where
     St: Stream<Item = SubSt>,
 {
     let stream = Box::pin(stream);
-    unfold(
+    crate::stream::unfold(
         (Some(stream), None),
-        async move |(mut state_stream, mut state_substream)| loop {
-            if let Some(mut substream) = state_substream.take() {
-                if let Some(item) = next(&mut substream).await {
-                    return Some((item, (state_stream, Some(substream))));
-                } else {
-                    continue;
+        |(mut state_stream, mut state_substream)| async move {
+            loop {
+                if let Some(mut substream) = state_substream.take() {
+                    if let Some(item) = next(&mut substream).await {
+                        return Some((item, (state_stream, Some(substream))));
+                    } else {
+                        continue;
+                    }
                 }
-            }
-            if let Some(mut stream) = state_stream.take() {
-                if let Some(substream) = next(&mut stream).await {
-                    let substream = Box::pin(substream);
-                    state_stream = Some(stream);
-                    state_substream = Some(substream);
-                    continue;
+                if let Some(mut stream) = state_stream.take() {
+                    if let Some(substream) = next(&mut stream).await {
+                        let substream = Box::pin(substream);
+                        state_stream = Some(stream);
+                        state_substream = Some(substream);
+                        continue;
+                    }
                 }
+                return None;
             }
-            return None;
-        },
+        }
     )
 }
 
@@ -505,7 +507,7 @@ where
     Fut: Future<Output = St::Item>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move |(mut stream, mut f)| {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
         let item = next(&mut stream).await;
         if let Some(item) = item {
             let new_item = f(item).await;
@@ -539,7 +541,7 @@ where
     St: Stream,
 {
     let stream = Box::pin(stream);
-    unfold((stream, n), async move |(mut stream, mut n)| {
+    crate::stream::unfold((stream, n), |(mut stream, mut n)| async move {
         while n != 0 {
             if let Some(_) = next(&mut stream).await {
                 n = n - 1;
@@ -584,7 +586,7 @@ where
 {
     let stream = Box::pin(stream);
     let other = Box::pin(other);
-    unfold((stream, other), async move |(mut stream, mut other)| {
+    crate::stream::unfold((stream, other), |(mut stream, mut other)| async move {
         let left = next(&mut stream).await;
         let right = next(&mut other).await;
         match (left, right) {
@@ -624,9 +626,9 @@ where
     let stream = Box::pin(stream);
     let other = Box::pin(other);
     let start_with_first = true;
-    unfold(
+    crate::stream::unfold(
         (stream, other, start_with_first),
-        async move |(mut stream, mut other, start_with_first)| {
+        |(mut stream, mut other, start_with_first)| async move {
             if start_with_first {
                 if let Some(item) = next(&mut stream).await {
                     return Some((item, (stream, other, start_with_first)));
@@ -668,7 +670,7 @@ where
     Fut: Future<Output = bool>,
 {
     let stream = Box::pin(stream);
-    unfold((stream, f), async move |(mut stream, mut f)| {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
         if let Some(item) = next(&mut stream).await {
             if f(&item).await {
                 Some((item, (stream, f)))
@@ -710,9 +712,9 @@ where
 {
     let stream = Box::pin(stream);
     let should_skip = true;
-    unfold(
+    crate::stream::unfold(
         (stream, f, should_skip),
-        async move |(mut stream, mut f, should_skip)| {
+        |(mut stream, mut f, should_skip)| async move {
             while should_skip {
                 if let Some(item) = next(&mut stream).await {
                     if f(&item).await {
