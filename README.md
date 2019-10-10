@@ -53,6 +53,7 @@ Stream
 - [x] stream::iter
 - [x] stream::map
 - [x] stream::next
+- [x] stream::once
 - [x] stream::poll_fn
 - [x] stream::repeat
 - [x] stream::skip

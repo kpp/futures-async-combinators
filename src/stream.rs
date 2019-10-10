@@ -38,6 +38,29 @@ where
     poll_fn(move |context| Pin::new(&mut stream).poll_next(context))
 }
 
+/// Creates a stream of a single element.
+///
+/// ```
+/// # futures::executor::block_on(async {
+/// use futures_async_combinators::stream::{once, collect};
+///
+/// let stream = once(async { 17 });
+/// let collection: Vec<i32> = collect(stream).await;
+/// assert_eq!(collection, vec![17]);
+/// # });
+/// ```
+pub fn once<F>(future: F) -> impl Stream<Item = F::Output>
+where
+    F: Future,
+{
+    crate::stream::unfold(Some(future), |f| async move {
+        match f {
+            Some(f) => Some((f.await, None)),
+            None => None
+        }
+    })
+}
+
 /// Collect all of the values of this stream into a vector, returning a
 /// future representing the result of that computation.
 ///
@@ -873,6 +896,14 @@ mod tests {
         assert_eq!(executor::block_on(next(&mut stream)), Some(2));
         assert_eq!(executor::block_on(next(&mut stream)), Some(3));
         assert_eq!(executor::block_on(next(&mut stream)), None);
+    }
+
+    #[test]
+    fn test_once() {
+        let stream = once(async { 17 });
+
+        let collection: Vec<i32> = executor::block_on(collect(stream));
+        assert_eq!(collection, vec![17]);
     }
 
     #[test]
