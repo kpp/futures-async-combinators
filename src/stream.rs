@@ -793,27 +793,27 @@ where
     F: FnMut(T) -> Fut,
     Fut: Future<Output = Option<(It, T)>>,
 {
-    enum State<T, Fut> {
-        Paused(T),
-        Running(Pin<Box<Fut>>),
-    }
-    let mut state = Some(State::Paused(init));
+    let mut state = Some(init);
+    let mut running = Box::pin(None);
+
     crate::stream::poll_fn(move |context| -> Poll<Option<It>> {
-        let mut future = match state.take() {
-            Some(State::Running(fut)) => fut,
-            Some(State::Paused(st)) => Box::pin(f(st)),
-            None => panic!("this stream must not be polled any more"),
-        };
-        match future.as_mut().poll(context) {
-            Poll::Pending => {
-                state = Some(State::Running(future));
-                Poll::Pending
-            }
-            Poll::Ready(None) => Poll::Ready(None),
-            Poll::Ready(Some((item, new_state))) => {
-                state = Some(State::Paused(new_state));
+        if let Some(state) = state.take() {
+            let fut = f(state);
+            running.set(Some(fut));
+        }
+
+        let fut = Option::as_pin_mut(running.as_mut()).expect("this stream must not be polled any more");
+        let step = futures_core::ready!(fut.poll(context));
+
+        match step {
+            None => {
+                Poll::Ready(None)
+            },
+            Some((item, new_state)) => {
+                state = Some(new_state);
+                running.set(None);
                 Poll::Ready(Some(item))
-            }
+            },
         }
     })
 }
