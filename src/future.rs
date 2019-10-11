@@ -304,10 +304,10 @@ where
 /// assert_eq!(future.await, 1);
 /// # });
 /// ```
-pub async fn flatten<FutA, FutB>(future: FutA) -> FutB::Output
+pub async fn flatten<Fut>(future: Fut) -> <<Fut as Future>::Output as Future>::Output
 where
-    FutA: Future<Output = FutB>,
-    FutB: Future,
+    Fut: Future,
+    <Fut as Future>::Output: Future
 {
     let nested_future = future.await;
     nested_future.await
@@ -470,14 +470,7 @@ pub fn into_stream<Fut>(future: Fut) -> impl Stream<Item = Fut::Output>
 where
     Fut: Future,
 {
-    crate::stream::unfold(Some(future), |future| async move {
-        if let Some(future) = future {
-            let item = future.await;
-            Some((item, (None)))
-        } else {
-            None
-        }
-    })
+    crate::stream::once(future)
 }
 
 /// Creates a new future wrapping around a function returning [`Poll`](core::task::Poll).
