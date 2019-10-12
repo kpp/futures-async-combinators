@@ -8,9 +8,13 @@ os:
 
 matrix:
   include:
-    - os: linux
+    - name: clippy
+      os: linux
+      install:
+        - rustup component add clippy
       script:
-        - cargo build --examples --tests --benches
+        - cargo clippy --verbose --all --tests
+
     - name: coverage
       os: linux
       sudo: required
@@ -26,12 +30,13 @@ matrix:
             - kalakris-cmake
       cache:
         directories:
-          - /home/travis/.cargo
-          - /home/travis/build/kpp/futures-async-combinators/target/kcov-master
+          - $HOME/.cargo
+          - $TRAVIS_BUILD_DIR/target/kcov-master
       before_cache:
-        - rm -rf /home/travis/.cargo/registry
+        - rm -rf $HOME/.cargo/registry
       install:
         - cargo install cargo-update --debug || echo "cargo-update has been already installed"
         - cargo install-update -i cargo-travis
       script:
+        - cargo build --examples --tests --benches
         - cargo coveralls
