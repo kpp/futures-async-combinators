@@ -53,7 +53,7 @@ pub fn once<F>(future: F) -> impl Stream<Item = F::Output>
 where
     F: Future,
 {
-    crate::stream::unfold(Some(future), |f| async move {
+    crate::stream::unfold(Some(future), |f| async {
         match f {
             Some(f) => Some((f.await, None)),
             None => None
@@ -121,7 +121,7 @@ where
     F: FnMut(St::Item) -> U,
 {
     let stream = Box::pin(stream);
-    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async {
         let item = next(&mut stream).await;
         item.map(|item| (f(item), (stream, f)))
     })
@@ -160,7 +160,7 @@ where
     Fut: Future<Output = bool>,
 {
     let stream = Box::pin(stream);
-    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async {
         while let Some(item) = next(&mut stream).await {
             let matched = f(&item).await;
             if matched {
@@ -207,7 +207,7 @@ where
     Fut: Future<Output = Option<U>>,
 {
     let stream = Box::pin(stream);
-    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async {
         while let Some(item) = next(&mut stream).await {
             if let Some(item) = f(item).await {
                 return Some((item, (stream, f)));
@@ -354,7 +354,7 @@ where
 /// assert_eq!(x, 3);
 /// # });
 /// ```
-pub async fn for_each<St, Fut, F>(stream: St, f: F) -> ()
+pub async fn for_each<St, Fut, F>(stream: St, f: F)
 where
     St: Stream,
     F: FnMut(St::Item) -> Fut,
@@ -392,13 +392,12 @@ where
     let stream = Box::pin(stream);
     crate::stream::unfold((stream, n), |(mut stream, n)| async move {
         if n == 0 {
-            None
+            return None;
+        }
+        if let Some(item) = next(&mut stream).await {
+            Some((item, (stream, n - 1)))
         } else {
-            if let Some(item) = next(&mut stream).await {
-                Some((item, (stream, n - 1)))
-            } else {
-                None
-            }
+            None
         }
     })
 }
@@ -507,7 +506,7 @@ where
     Fut: Future<Output = St::Item>,
 {
     let stream = Box::pin(stream);
-    crate::stream::unfold((stream, f), |(mut stream, mut f)| async move {
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async {
         let item = next(&mut stream).await;
         if let Some(item) = item {
             let new_item = f(item).await;
@@ -543,8 +542,8 @@ where
     let stream = Box::pin(stream);
     crate::stream::unfold((stream, n), |(mut stream, mut n)| async move {
         while n != 0 {
-            if let Some(_) = next(&mut stream).await {
-                n = n - 1;
+            if next(&mut stream).await.is_some() {
+                n -= 1;
                 continue;
             } else {
                 return None;
@@ -586,7 +585,7 @@ where
 {
     let stream = Box::pin(stream);
     let other = Box::pin(other);
-    crate::stream::unfold((stream, other), |(mut stream, mut other)| async move {
+    crate::stream::unfold((stream, other), |(mut stream, mut other)| async {
         let left = next(&mut stream).await;
         let right = next(&mut other).await;
         match (left, right) {
@@ -619,28 +618,11 @@ where
 /// ]);
 /// # });
 /// ```
-pub fn chain<St>(stream: St, other: St) -> impl Stream<Item = St::Item>
+pub fn chain<St>(left: St, right: St) -> impl Stream<Item = St::Item>
 where
     St: Stream,
 {
-    let stream = Box::pin(stream);
-    let other = Box::pin(other);
-    let start_with_first = true;
-    crate::stream::unfold(
-        (stream, other, start_with_first),
-        |(mut stream, mut other, start_with_first)| async move {
-            if start_with_first {
-                if let Some(item) = next(&mut stream).await {
-                    return Some((item, (stream, other, start_with_first)));
-                }
-            }
-            if let Some(item) = next(&mut other).await {
-                Some((item, (stream, other, /* start_with_first */ false)))
-            } else {
-                None
-            }
-        },
-    )
+    flatten(iter( vec![left, right] ))
 }
 
 /// Take elements from this stream while the provided asynchronous predicate
@@ -715,15 +697,13 @@ where
     crate::stream::unfold(
         (stream, f, should_skip),
         |(mut stream, mut f, should_skip)| async move {
-            while should_skip {
-                if let Some(item) = next(&mut stream).await {
+            if should_skip {
+                while let Some(item) = next(&mut stream).await {
                     if f(&item).await {
                         continue;
                     } else {
                         return Some((item, (stream, f, /* should_skip */ false)));
                     }
-                } else {
-                    return None;
                 }
             }
             if let Some(item) = next(&mut stream).await {
