@@ -18,7 +18,7 @@ like `FutureExt::map`, `TryFutureExt::and_then`...
 
 # Requirements
 
-Rust 1.39.0-beta.5 for async_await.
+Rust 1.39.0 for async/await.
 
 # State
 
