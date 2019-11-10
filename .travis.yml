@@ -1,7 +1,7 @@
 language: rust
 sudo: false
 rust:
-  - beta
+  - stable
 
 os:
   - linux
