@@ -219,6 +219,26 @@ where
     })
 }
 
+/// Do something with each item of this stream, afterwards passing it on.
+///
+/// This is similar to the `Iterator::inspect` method in the standard
+/// library where it allows easily inspecting each value as it passes
+/// through the stream, for example to debug what's going on.
+pub fn inspect<St, F>(stream: St, f: F) -> impl Stream<Item = St::Item>
+where
+    St: Stream,
+    F: FnMut(&St::Item),
+{
+    let stream = Box::pin(stream);
+    crate::stream::unfold((stream, f), |(mut stream, mut f)| async {
+        let item = next(&mut stream).await;
+        item.map(|item| {
+            f(&item);
+            (item, (stream, f))
+        })
+    })
+}
+
 /// Converts this stream into a future of `(next_item, tail_of_stream)`.
 /// If the stream terminates, then the next item is [`None`].
 ///
@@ -930,6 +950,19 @@ mod tests {
             vec![3, 5, 7, 9, 11],
             executor::block_on(collect::<_, Vec<_>>(evens))
         );
+    }
+
+    #[test]
+    fn test_inspect() {
+        let mut seen = Vec::new();
+        let stream = iter(1..=3);
+        let stream = inspect(stream, |x| seen.push(*x));
+
+        assert_eq!(
+            vec![1, 2, 3],
+            executor::block_on(collect::<_, Vec<_>>(stream))
+        );
+        assert_eq!(seen, [1, 2, 3]);
     }
 
     #[test]
