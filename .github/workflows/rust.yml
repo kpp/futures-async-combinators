@@ -1,4 +1,4 @@
-name: Build & Test
+name: CI
 
 on:
   push:
@@ -10,14 +10,16 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Build
+    - name: build
       run: cargo build --tests --benches --verbose
-    - name: Run tests
+    - name: test
       run: cargo test --verbose
+
   clippy:
     name: clippy
     runs-on: ubuntu-latest
@@ -28,3 +30,25 @@ jobs:
         with:
           command: clippy
           args: --all --lib --tests -- --deny warnings
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: '0.15.0'
+          args: '-- --test-threads 1'
+
+      - name: upload to codecov.io
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+
+      - name: archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
