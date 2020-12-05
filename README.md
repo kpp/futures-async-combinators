@@ -1,19 +1,19 @@
 # futures-async-combinators
 
-[![Build Status][travis-badge]][travis-url]
+[![Build Status][ci-badge]][ci-url]
 [![Coverage Status][cov-badge]][cov-url]
 [![Docs][doc-badge]][doc-url]
 
-[travis-badge]: https://travis-ci.com/kpp/futures-async-combinators.svg?branch=master
-[travis-url]: https://travis-ci.com/kpp/futures-async-combinators
-[cov-badge]: https://coveralls.io/repos/github/kpp/futures-async-combinators/badge.svg?branch=master
-[cov-url]: https://coveralls.io/github/kpp/futures-async-combinators?branch=master
+[ci-badge]: https://github.com/kpp/futures-async-combinators/workflows/CI/badge.svg?branch=master
+[ci-url]: https://github.com/kpp/futures-async-combinators/actions
+[cov-badge]: https://codecov.io/gh/kpp/futures-async-combinators/branch/master/graph/badge.svg?token=X29P76ICLS
+[cov-url]: https://codecov.io/gh/kpp/futures-async-combinators
 [doc-badge]: https://docs.rs/futures-async-combinators/badge.svg
 [doc-url]: https://docs.rs/futures-async-combinators
 
 FOR LEARNING PURPOSES ONLY
 
-This is a greatly simplified implementation of [Future combinators](https://docs.rs/futures-preview/0.3.0-alpha.18/futures/)
+This is a greatly simplified implementation of [Future combinators](https://docs.rs/futures/0.3.8/futures/)
 like `FutureExt::map`, `TryFutureExt::and_then`...
 
 # Requirements
