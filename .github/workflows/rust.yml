@@ -16,7 +16,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: cargo build --tests --benches --verbose
+      run: cargo build --tests --examples --benches --verbose
     - name: test
       run: cargo test --verbose
 
@@ -29,7 +29,7 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: --all --lib --tests -- --deny warnings
+          args: --all --lib --tests --examples -- --deny warnings
 
   coverage:
     name: coverage
