@@ -620,9 +620,9 @@ mod tests {
     #[test]
     fn test_unwrap_or_else() {
         executor::block_on(async {
-            let future = ready(Err::<(), &str>("Boom!"));
-            let new_future = unwrap_or_else(future, |_| ());
-            assert_eq!(new_future.await, ());
+            let future = ready(Err::<i32, &str>("Boom!"));
+            let new_future = unwrap_or_else(future, |_| 42);
+            assert_eq!(new_future.await, 42);
         });
     }
 
