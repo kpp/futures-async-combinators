@@ -49,6 +49,7 @@ Stream
 - [x] stream::flatten
 - [x] stream::fold
 - [x] stream::for_each
+- [x] stream::inspect
 - [x] stream::into_future
 - [x] stream::iter
 - [x] stream::map
