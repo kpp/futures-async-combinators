@@ -11,14 +11,12 @@ keywords = ["async", "await", "futures"]
 edition = "2018"
 
 [badges]
-travis-ci = { repository = "kpp/futures-async-combinators" }
-coveralls = { repository = "kpp/futures-async-combinators" }
 # Available options are `actively-developed`, `passively-maintained`,
 # `as-is`, `none`, `experimental`, `looking-for-maintainer`, `deprecated`.
 maintenance = { status = "experimental" }
 
 [dependencies]
-pin-utils = "=0.1.0-alpha.4"
+pin-utils = "0.1.0"
 futures-core = "0.3"
 
 [dev-dependencies]
